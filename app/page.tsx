@@ -1,65 +1,136 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Building2,
+  HandHeart,
+  HeartHandshake,
+  HeartPulse,
+  LogIn,
+  Users,
+} from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen">
+      <section className="relative flex min-h-[100svh] flex-col overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url(https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=2400&q=80)",
+          }}
+          aria-hidden
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-[#0a3d40]/95 via-[#0d7377]/78 to-[#0d7377]/35"
+          aria-hidden
+        />
+
+        <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">
+          <span className="font-display text-2xl tracking-tight text-white animate-fade">
+            OkayNow
+          </span>
+          <div className="flex items-center gap-2 animate-fade">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <LogIn className="h-4 w-4" aria-hidden />
+              Sign in
+            </Link>
+            <ButtonLink
+              href="/register"
+              className="!bg-white !text-brand-deep hover:!bg-brand-soft"
+              size="sm"
             >
-              Learning
-            </a>{" "}
-            center.
+              <ArrowRight className="h-4 w-4" aria-hidden />
+              Get started
+            </ButtonLink>
+          </div>
+        </header>
+
+        <div className="relative z-10 flex flex-1 flex-col justify-end px-6 pb-16 pt-24 sm:px-10 sm:pb-24">
+          <p className="font-display text-5xl leading-[1.05] text-white sm:text-7xl lg:text-8xl animate-rise">
+            OkayNow
           </p>
+          <h1 className="mt-4 max-w-xl text-xl font-medium text-white/95 sm:text-2xl animate-rise-delay">
+            Home care shifts, filled in Massachusetts.
+          </h1>
+          <p className="mt-3 max-w-lg text-base text-white/80 animate-rise-delay">
+            Caregivers pick up open shifts with clear pay and location. Families
+            and facilities post care when they need it.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3 animate-rise-delay-2">
+            <ButtonLink
+              href="/register?role=CAREGIVER"
+              className="!bg-white !text-brand-deep hover:!bg-brand-soft"
+              size="lg"
+            >
+              <HandHeart className="h-5 w-5" aria-hidden />
+              I&apos;m a caregiver
+            </ButtonLink>
+            <ButtonLink
+              href="/register?role=CLIENT"
+              variant="secondary"
+              className="!border-white/40 !bg-transparent !text-white hover:!bg-white/10"
+              size="lg"
+            >
+              <HeartHandshake className="h-5 w-5" aria-hidden />
+              I need care
+            </ButtonLink>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section className="atmosphere px-6 py-20 sm:px-10">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="font-display text-3xl text-ink sm:text-4xl">
+            Built for how Massachusetts home care actually works
+          </h2>
+          <p className="mt-4 text-lg text-ink-muted">
+            Transparent pay and bill rates, qualification-aware matching, and a
+            shift board your agency can trust — designed around W-2 staffing,
+            not gig-economy guesswork.
+          </p>
+          <div className="mt-10 grid gap-8 sm:grid-cols-3">
+            {[
+              {
+                title: "Caregivers",
+                body: "Browse open shifts by pay, distance, and credential. Claim what fits your week.",
+                Icon: HeartPulse,
+              },
+              {
+                title: "Families & facilities",
+                body: "Post one-off or recurring needs with clear rates and care notes.",
+                Icon: Users,
+              },
+              {
+                title: "Agency admins",
+                body: "Oversee the board, fill rates, and rates across your book of business.",
+                Icon: Building2,
+              },
+            ].map((item) => (
+              <div key={item.title}>
+                <item.Icon className="h-5 w-5 text-brand-deep" aria-hidden />
+                <h3 className="mt-2 font-display text-xl text-brand-deep">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
+
+      <footer className="border-t border-line bg-paper px-6 py-8 text-sm text-ink-muted sm:px-10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+          <span className="font-display text-lg text-brand-deep">OkayNow</span>
+          <span>Massachusetts home care staffing</span>
+        </div>
+      </footer>
     </div>
   );
 }

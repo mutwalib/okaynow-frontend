@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OkayNow Frontend
 
-## Getting Started
+Next.js App Router UI for the Massachusetts home care staffing marketplace.
+Each user role gets a **separate workspace** with its own navigation and routes.
 
-First, run the development server:
+## Roles & routes
+
+| Role | Home | Key screens |
+|---|---|---|
+| **Caregiver** | `/caregiver` | Open shift board, shift detail, my shifts, profile |
+| **Client / Family** | `/client` | Post shifts, manage posts, care profile |
+| **Facility** | `/facility` | Facility board, post coverage |
+
+Platform owners use the independent sibling app in `../admin-frontend` on port 3001.
+
+Public:
+
+- `/` — marketing landing
+- `/login`, `/register` — auth (role chosen at registration)
+- `/dashboard` — redirects to the signed-in role home
+
+Route groups are enforced by `proxy.ts` (cookie role) plus client `RoleGuard`.
+
+## Stack
+
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS 4
+- TanStack Query, React Hook Form, Zod
+- JWT access/refresh against the Spring Boot API (`NEXT_PUBLIC_API_URL`)
+
+## Setup
 
 ```bash
+cd frontend
+npm install
+cp .env.local.example .env.local   # optional
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Backend (default): `http://localhost:8080`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment
 
-## Learn More
+| Variable | Default |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` |
+| `NEXT_PUBLIC_ADMIN_APP_URL` | `http://localhost:3001` |
 
-To learn more about Next.js, take a look at the following resources:
+## Auth notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Phase 1 stores the JWT access/refresh tokens in `localStorage` and a role/user
+cookie for middleware redirects. Prefer httpOnly cookies before production.
