@@ -36,7 +36,11 @@ function LoginForm() {
       const next = params.get("next");
       router.push(next || ROLE_HOME[u.role]);
     } catch (err) {
-      showToast(formatAuthError(err), "error");
+      const msg = formatAuthError(err);
+      showToast(msg, "error");
+      if (msg.toLowerCase().includes("email not verified")) {
+        router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -75,6 +79,14 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </Field>
+          <p className="text-right text-sm">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-brand-deep underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
             {!submitting ? <LogIn className="h-5 w-5" aria-hidden /> : null}
             {submitting ? "Signing in…" : "Sign in"}
@@ -85,6 +97,13 @@ function LoginForm() {
           New here?{" "}
           <Link href="/register" className="font-medium text-brand-deep underline">
             Create an account
+          </Link>
+          {" · "}
+          <Link
+            href="/verify-email"
+            className="font-medium text-brand-deep underline"
+          >
+            Verify email
           </Link>
         </p>
         <a

@@ -19,8 +19,10 @@ import {
   ApiError,
   loginUser,
   registerUser,
+  verifyEmail,
   type LoginPayload,
   type RegisterPayload,
+  type RegisterResult,
 } from "./api";
 
 interface AuthContextValue {
@@ -28,7 +30,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
-  register: (payload: RegisterPayload) => Promise<AuthUser>;
+  register: (payload: RegisterPayload) => Promise<RegisterResult>;
+  completeEmailVerification: (email: string, code: string) => Promise<AuthUser>;
   logout: () => void;
   goHome: (role?: UserRole) => void;
 }
@@ -77,6 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload) => {
       const data = await loginUser(payload);
+      if (data.requiresOtp) {
+        throw new ApiError(
+          "Platform owners sign in through the owner console.",
+          403,
+        );
+      }
+      if (!data.accessToken || !data.refreshToken || !data.userId || !data.role) {
+        throw new ApiError(data.message || "Sign-in failed", 400);
+      }
       if (data.role === "ADMIN") {
         clearAuthSession();
         const adminUrl =
@@ -87,14 +99,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           403,
         );
       }
-      return persist(data);
+      return persist({
+        userId: data.userId,
+        email: data.email,
+        role: data.role,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresInSeconds: data.expiresInSeconds ?? 900,
+      });
     },
     [persist],
   );
 
-  const register = useCallback(
-    async (payload: RegisterPayload) => {
-      const data = await registerUser(payload);
+  const register = useCallback(async (payload: RegisterPayload) => {
+    return registerUser(payload);
+  }, []);
+
+  const completeEmailVerification = useCallback(
+    async (email: string, code: string) => {
+      const data = await verifyEmail(email, code);
       return persist(data);
     },
     [persist],
@@ -126,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        completeEmailVerification,
         logout,
         goHome,
       }}

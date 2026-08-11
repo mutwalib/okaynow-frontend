@@ -102,7 +102,7 @@ function RegisterForm() {
     }
     setSubmitting(true);
     try {
-      const u = await register({
+      const result = await register({
         email,
         password,
         phone: phone || undefined,
@@ -132,8 +132,8 @@ function RegisterForm() {
             }
           : {}),
       });
-      showToast("Account created", "success");
-      router.push(ROLE_HOME[u.role]);
+      showToast(result.message || "Check your email for a verification code", "success");
+      router.push(`/verify-email?email=${encodeURIComponent(result.email)}`);
     } catch (err) {
       showToast(formatAuthError(err), "error");
     } finally {
@@ -361,8 +361,6 @@ function RegisterForm() {
                   <span className="text-ink-muted"> (v{d.version})</span>
                 </span>
               ))}
-              . This includes the platform conversion fee for off-platform hires
-              and rules against false no-show reports.
             </span>
           </label>
 

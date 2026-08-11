@@ -74,6 +74,28 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface RegisterResult {
+  requiresEmailVerification: boolean;
+  email: string;
+  message: string;
+}
+
+export interface LoginResult {
+  requiresOtp: boolean;
+  email: string;
+  message?: string | null;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  tokenType?: string | null;
+  expiresInSeconds?: number | null;
+  userId?: string | null;
+  role?: UserRole | null;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
 export interface CreateShiftPayload {
   clientProfileId?: string;
   requiredQualification: Qualification;
@@ -219,16 +241,44 @@ async function request<T>(
 // --- auth ---
 
 export function registerUser(payload: RegisterPayload) {
-  return request<BackendAuthResponse>("/api/auth/register", {
+  return request<RegisterResult>("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function loginUser(payload: LoginPayload) {
-  return request<BackendAuthResponse>("/api/auth/login", {
+  return request<LoginResult>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function verifyEmail(email: string, code: string) {
+  return request<BackendAuthResponse>("/api/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ email, code }),
+  });
+}
+
+export function resendVerification(email: string) {
+  return request<MessageResponse>("/api/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function forgotPassword(email: string) {
+  return request<MessageResponse>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(email: string, code: string, newPassword: string) {
+  return request<MessageResponse>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, code, newPassword }),
   });
 }
 
