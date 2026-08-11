@@ -136,7 +136,8 @@ export function ShiftCard({
               <>
                 <PayRateBadge payRate={shift.payRate} />
                 <div className="mt-1 text-xs text-ink-muted">
-                  {hours.toFixed(1)} hrs · {formatMoney(shift.payRate * hours)} pay
+                  {hours.toFixed(1)} hrs ·{" "}
+                  {formatMoney(Number(shift.payRate ?? 0) * hours)} pay
                   {(shift.requiredHeadcount ?? 1) > 1 ? (
                     <>
                       {" "}

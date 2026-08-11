@@ -181,7 +181,7 @@ export default function CaregiverShiftDetailPage() {
             <PayRateBadge payRate={shift.payRate} />
           </div>
           <p className="text-sm text-ink-muted">
-            Est. {formatMoney(shift.payRate * hours)} for this shift
+            Est. {formatMoney(Number(shift.payRate ?? 0) * hours)} for this shift
           </p>
         </div>
       </div>

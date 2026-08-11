@@ -1,11 +1,11 @@
 import type { Shift, ShiftStatus } from "./types";
 
-export function formatMoney(n: number): string {
+export function formatMoney(n: number | null | undefined): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(Number(n ?? 0));
 }
 
 export function formatTime(t: string): string {
