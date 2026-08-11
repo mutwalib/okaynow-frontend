@@ -51,8 +51,8 @@ export default function FacilityProfilePage() {
       const zipCheck = maZipMessage(values.zip);
       if (zipCheck !== true) throw new Error(zipCheck);
       return updateMyFacilityProfile({
-        contactFirstName: values.contactFirstName,
-        contactLastName: values.contactLastName,
+        contactFirstName: profile.data!.contactFirstName,
+        contactLastName: profile.data!.contactLastName,
         phone: values.phone || null,
         addressLine: values.addressLine,
         city: values.city,
@@ -107,12 +107,26 @@ export default function FacilityProfilePage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Contact first name">
-            <Input {...register("contactFirstName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data.contactFirstName}
+              title="Contact name is locked after registration"
+            />
           </Field>
           <Field label="Contact last name">
-            <Input {...register("contactLastName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data.contactLastName}
+              title="Contact name is locked after registration"
+            />
           </Field>
         </div>
+        <p className="text-xs text-ink-muted">
+          Contact names and facility name are set at registration and cannot be
+          changed here. Contact the agency if a correction is required.
+        </p>
 
         <Field label="Phone">
           <Input type="tel" {...register("phone")} />

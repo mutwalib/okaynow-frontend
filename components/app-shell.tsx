@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { LegalAcceptanceGate } from "@/components/legal-acceptance-gate";
 import { useAuth } from "@/lib/auth-context";
@@ -82,16 +83,14 @@ export function AppShell({
           {collapsed ? (
             <Link
               href={homeHref}
-              className="flex h-8 w-8 items-center justify-center rounded font-display text-sm font-semibold text-brand-deep"
+              className="flex h-8 w-8 items-center justify-center"
               title="OkayNow"
             >
-              ON
+              <BrandLogo variant="mark" height={32} />
             </Link>
           ) : (
             <Link href={homeHref} className="min-w-0 flex-1">
-              <div className="font-display text-lg font-semibold tracking-tight text-brand-deep">
-                OkayNow
-              </div>
+              <BrandLogo variant="primary" height={32} />
               <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-muted">
                 {ROLE_LABEL[role]}
               </div>
@@ -168,11 +167,8 @@ export function AppShell({
       >
         <header className="sticky top-0 z-[80] flex items-center justify-between gap-3 border-b border-line/70 bg-paper/90 px-4 py-2.5 backdrop-blur-md sm:px-6">
           <div className="min-w-0">
-            <Link
-              href={homeHref}
-              className="font-display text-base font-semibold text-brand-deep md:hidden"
-            >
-              OkayNow
+            <Link href={homeHref} className="md:hidden">
+              <BrandLogo variant="primary" height={28} />
             </Link>
             <p className="hidden truncate text-sm text-ink-muted md:block">
               {user?.email ?? ROLE_LABEL[role]}

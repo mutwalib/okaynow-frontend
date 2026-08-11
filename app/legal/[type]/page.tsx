@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { BrandLogo } from "@/components/brand-logo";
 import { getCurrentLegalDocuments } from "@/lib/api";
 
 const TYPE_SLUG: Record<string, string> = {
@@ -24,8 +25,8 @@ export default function LegalDocPage({
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
-      <Link href="/" className="text-sm text-brand-deep underline">
-        OkayNow
+      <Link href="/" className="inline-block">
+        <BrandLogo variant="primary" height={32} />
       </Link>
       {docs.isLoading ? (
         <p className="mt-6 text-ink-muted">Loading…</p>

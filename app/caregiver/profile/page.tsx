@@ -67,8 +67,8 @@ export default function CaregiverProfilePage() {
   const save = useMutation({
     mutationFn: (values: FormValues) =>
       updateMyCaregiverProfile({
-        firstName: values.firstName,
-        lastName: values.lastName,
+        firstName: profile.data!.firstName,
+        lastName: profile.data!.lastName,
         qualifications: values.qualifications,
         hourlyRateMin:
           values.hourlyRateMin === "" ? null : Number(values.hourlyRateMin),
@@ -159,12 +159,26 @@ export default function CaregiverProfilePage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
-            <Input {...register("firstName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data?.firstName ?? ""}
+              title="Legal name is locked after registration"
+            />
           </Field>
           <Field label="Last name">
-            <Input {...register("lastName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data?.lastName ?? ""}
+              title="Legal name is locked after registration"
+            />
           </Field>
         </div>
+        <p className="text-xs text-ink-muted">
+          Names are set at registration and cannot be changed. Contact the agency
+          if a correction is required.
+        </p>
 
         <div>
           <p className="mb-2 text-sm font-medium text-ink">Qualifications</p>

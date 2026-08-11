@@ -38,11 +38,11 @@ export function ProfilePhotoField({
       </div>
       <div>
         <p className="text-sm font-medium text-ink">Profile photo</p>
-        <p className="mt-0.5 text-xs text-ink-muted">JPEG, PNG, or WebP · max 2 MB</p>
+        <p className="mt-0.5 text-xs text-ink-muted">JPEG, PNG, or WebP · max 5 MB</p>
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/jpg,.jpg,.jpeg,.png,.webp"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

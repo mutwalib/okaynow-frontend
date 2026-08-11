@@ -167,10 +167,16 @@ export default function CaregiverPayPage() {
                       className={
                         row.paymentStatus === "PAID"
                           ? "font-semibold text-emerald-700"
-                          : "font-semibold text-amber-700"
+                          : row.paymentStatus === "PROCESSING"
+                            ? "font-semibold text-sky-700"
+                            : "font-semibold text-amber-700"
                       }
                     >
-                      {row.paymentStatus === "PAID" ? "Paid" : "Due"}
+                      {row.paymentStatus === "PAID"
+                        ? "Paid"
+                        : row.paymentStatus === "PROCESSING"
+                          ? "Processing"
+                          : "Due"}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">

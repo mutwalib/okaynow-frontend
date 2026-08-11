@@ -6,8 +6,8 @@ import {
   HeartHandshake,
   HeartPulse,
   LogIn,
-  Users,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { ButtonLink } from "@/components/ui/button";
 
 export default function LandingPage() {
@@ -28,9 +28,12 @@ export default function LandingPage() {
         />
 
         <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">
-          <span className="font-display text-2xl tracking-tight text-white animate-fade">
-            OkayNow
-          </span>
+          <BrandLogo
+            variant="primary"
+            priority
+            height={40}
+            className="animate-fade"
+          />
           <div className="flex items-center gap-2 animate-fade">
             <Link
               href="/login"
@@ -51,15 +54,19 @@ export default function LandingPage() {
         </header>
 
         <div className="relative z-10 flex flex-1 flex-col justify-end px-6 pb-16 pt-24 sm:px-10 sm:pb-24">
-          <p className="font-display text-5xl leading-[1.05] text-white sm:text-7xl lg:text-8xl animate-rise">
-            OkayNow
-          </p>
+          <BrandLogo
+            variant="primary"
+            priority
+            height={80}
+            className="max-w-full animate-rise"
+          />
           <h1 className="mt-4 max-w-xl text-xl font-medium text-white/95 sm:text-2xl animate-rise-delay">
-            Home care shifts, filled in Massachusetts.
+            Same caregivers. Clear rates. Massachusetts home care that runs.
           </h1>
           <p className="mt-3 max-w-lg text-base text-white/80 animate-rise-delay">
-            Caregivers pick up open shifts with clear pay and location. Families
-            and facilities post care when they need it.
+            Not another gig board. OkayNow keeps families with caregivers they
+            know, fills gaps when needed, and runs W-2 pay, visits, and invoices
+            in one place.
           </p>
           <div className="mt-8 flex flex-wrap gap-3 animate-rise-delay-2">
             <ButtonLink
@@ -86,28 +93,28 @@ export default function LandingPage() {
       <section className="atmosphere px-6 py-20 sm:px-10">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-3xl text-ink sm:text-4xl">
-            Built for how Massachusetts home care actually works
+            Built for agencies — not for Uber-for-nursing chaos
           </h2>
           <p className="mt-4 text-lg text-ink-muted">
-            Transparent pay and bill rates, qualification-aware matching, and a
-            shift board your agency can trust — designed around W-2 staffing,
-            not gig-economy guesswork.
+            Continuity first (primary roster, private invite), marketplace only
+            when you need it. Transparent bill vs pay, EVV-ready home visits,
+            and facility surge when ratios are on the line.
           </p>
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
             {[
               {
+                title: "Families",
+                body: "Prefer the same caregiver week to week. Call out to your roster before the open board.",
+                Icon: HeartHandshake,
+              },
+              {
                 title: "Caregivers",
-                body: "Browse open shifts by pay, distance, and credential. Claim what fits your week.",
+                body: "Clear pay, real addresses, travel-aware home shifts — W-2 employment, not 1099 guesswork.",
                 Icon: HeartPulse,
               },
               {
-                title: "Families & facilities",
-                body: "Post one-off or recurring needs with clear rates and care notes.",
-                Icon: Users,
-              },
-              {
-                title: "Agency admins",
-                body: "Oversee the board, fill rates, and rates across your book of business.",
+                title: "Agency ops",
+                body: "One cockpit: open seats, expiring credentials, unpaid invoices, visit exceptions.",
                 Icon: Building2,
               },
             ].map((item) => (
@@ -127,7 +134,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-line bg-paper px-6 py-8 text-sm text-ink-muted sm:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <span className="font-display text-lg text-brand-deep">OkayNow</span>
+          <BrandLogo variant="primary" height={32} />
           <span>Massachusetts home care staffing</span>
         </div>
       </footer>

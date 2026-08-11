@@ -161,13 +161,17 @@ function AssignedCaregiverRow({
       ? `${Number(caregiver.ratingAvg).toFixed(1)} (${caregiver.ratingCount})`
       : null;
   const statusLabel =
-    caregiver.status === "PENDING"
-      ? "Claimed — awaiting confirmation"
-      : caregiver.status === "COMPLETED"
-        ? "Completed"
-        : caregiver.source === "ASSIGNED"
-          ? "Assigned"
-          : "Confirmed";
+    caregiver.status === "PENDING" && caregiver.source === "INVITE"
+      ? "Invited — awaiting accept"
+      : caregiver.status === "PENDING"
+        ? "Claimed — awaiting confirmation"
+        : caregiver.status === "COMPLETED"
+          ? "Completed"
+          : caregiver.source === "ASSIGNED"
+            ? "Assigned"
+            : caregiver.source === "INVITE"
+              ? "Invite accepted"
+              : "Confirmed";
 
   return (
     <li className="flex items-start gap-3 px-4 py-3">

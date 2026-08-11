@@ -15,10 +15,10 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  assignCaregiverFromRoster,
   closeShiftMarketplace,
   createShift,
   deleteShift,
+  inviteCaregiverToShift,
   getMyCaregiverRoster,
   getMyClientProfile,
   getScheduleCalendar,
@@ -194,7 +194,7 @@ export function ScheduleCalendar({
             "That shift is already filled — drop onto an open shift or an empty day",
           );
         }
-        return assignCaregiverFromRoster(
+        return inviteCaregiverToShift(
           target.id,
           caregiver.caregiverProfileId,
         );
@@ -202,7 +202,7 @@ export function ScheduleCalendar({
 
       const openShift = existing.find(isAssignable);
       if (openShift) {
-        return assignCaregiverFromRoster(
+        return inviteCaregiverToShift(
           openShift.id,
           caregiver.caregiverProfileId,
         );
@@ -232,13 +232,13 @@ export function ScheduleCalendar({
         assignFromRoster: false,
       });
       const shift = created.shifts[0];
-      await assignCaregiverFromRoster(shift.id, caregiver.caregiverProfileId);
+      await inviteCaregiverToShift(shift.id, caregiver.caregiverProfileId);
       return shift;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
       qc.invalidateQueries({ queryKey: ["shifts"] });
-      showToast("Caregiver scheduled", "success");
+      showToast("Invitation sent — caregiver must accept", "success");
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });

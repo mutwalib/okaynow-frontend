@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Hand, Undo2 } from "lucide-react";
-import { claimShift, getMyClaims, getShift, releaseShift } from "@/lib/api";
+import { claimShift, getMyClaims, getShift, releaseShift, acceptShiftInvite, declineShiftInvite } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import { MOCK_SHIFTS } from "@/lib/mockShifts";
 import { formatDate, formatMoney, formatTime, shiftHours } from "@/lib/format";
@@ -78,6 +78,30 @@ export default function CaregiverShiftDetailPage() {
     onError: (error: Error) => showToast(error.message, "error"),
   });
 
+  const acceptInvite = useMutation({
+    mutationFn: () => acceptShiftInvite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shift", id] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["my-claims"] });
+      showToast("Invitation accepted.", "success");
+      router.push("/caregiver/my-shifts");
+    },
+    onError: (error: Error) => showToast(error.message, "error"),
+  });
+
+  const declineInvite = useMutation({
+    mutationFn: () => declineShiftInvite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shift", id] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["my-claims"] });
+      showToast("Invitation declined.", "success");
+      router.push("/caregiver/shifts");
+    },
+    onError: (error: Error) => showToast(error.message, "error"),
+  });
+
   if (query.isLoading) {
     return <p className="text-ink-muted">Loading shift…</p>;
   }
@@ -130,7 +154,9 @@ export default function CaregiverShiftDetailPage() {
             <span className="rounded bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand-deep">
               {myClaim.source === "ASSIGNED"
                 ? `Assigned to you · ${myClaim.status}`
-                : `Your claim · ${myClaim.status}`}
+                : myClaim.source === "INVITE"
+                  ? `Private invite · ${myClaim.status}`
+                  : `Your claim · ${myClaim.status}`}
             </span>
           ) : null}
           <span className="rounded bg-surface-2 px-2 py-0.5 text-xs font-semibold">
@@ -175,18 +201,45 @@ export default function CaregiverShiftDetailPage() {
       ) : null}
 
       <div className="flex flex-wrap gap-3 border-t border-line pt-6">
-        <Button
-          size="lg"
-          disabled={!canClaim}
-          onClick={() => claim.mutate()}
-          variant={isMine ? "secondary" : "primary"}
-        >
-          {!isMine && (primaryLabel === "Claim shift" || claim.isPending) ? (
-            <Hand className="h-5 w-5" aria-hidden />
-          ) : null}
-          {primaryLabel}
-        </Button>
-        {isMine && myClaim.status === "PENDING" ? (
+        {isMine && myClaim.source === "INVITE" && myClaim.status === "PENDING" ? (
+          <>
+            <Button
+              size="lg"
+              disabled={acceptInvite.isPending || declineInvite.isPending}
+              onClick={() => acceptInvite.mutate()}
+            >
+              <Hand className="h-5 w-5" aria-hidden />
+              {acceptInvite.isPending ? "Accepting…" : "Accept invite"}
+            </Button>
+            <Button
+              size="lg"
+              variant="secondary"
+              disabled={acceptInvite.isPending || declineInvite.isPending}
+              onClick={() => {
+                if (confirmAction("Decline this private invitation?")) {
+                  declineInvite.mutate();
+                }
+              }}
+            >
+              {declineInvite.isPending ? "Declining…" : "Decline"}
+            </Button>
+          </>
+        ) : (
+          <Button
+            size="lg"
+            disabled={!canClaim}
+            onClick={() => claim.mutate()}
+            variant={isMine ? "secondary" : "primary"}
+          >
+            {!isMine && (primaryLabel === "Claim shift" || claim.isPending) ? (
+              <Hand className="h-5 w-5" aria-hidden />
+            ) : null}
+            {primaryLabel}
+          </Button>
+        )}
+        {isMine &&
+        myClaim.status === "PENDING" &&
+        myClaim.source !== "INVITE" ? (
           <Button
             size="lg"
             variant="ghost"

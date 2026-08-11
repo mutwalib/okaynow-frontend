@@ -51,7 +51,8 @@ export default function ClientProfilePage() {
         throw new Error(String(maZipMessage(values.zip)));
       }
       return updateMyClientProfile({
-        ...values,
+        firstName: profile.data!.firstName,
+        lastName: profile.data!.lastName,
         state: DEFAULT_STATE,
         addressLine: values.addressLine || null,
         city: values.city || null,
@@ -100,12 +101,26 @@ export default function ClientProfilePage() {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
-            <Input {...register("firstName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data?.firstName ?? ""}
+              title="Legal name is locked after registration"
+            />
           </Field>
           <Field label="Last name">
-            <Input {...register("lastName", { required: true })} />
+            <Input
+              readOnly
+              disabled
+              value={profile.data?.lastName ?? ""}
+              title="Legal name is locked after registration"
+            />
           </Field>
         </div>
+        <p className="text-xs text-ink-muted">
+          Names are set at registration and cannot be changed. Contact the agency
+          if a correction is required.
+        </p>
         <Field label="Street address">
           <Input {...register("addressLine")} />
         </Field>

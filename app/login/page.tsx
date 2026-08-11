@@ -7,6 +7,7 @@ import { formatAuthError, useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast-context";
 import { ROLE_HOME } from "@/lib/types";
 import { ArrowLeft, LogIn } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 
@@ -44,8 +45,8 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen atmosphere">
       <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12">
-        <Link href="/" className="font-display text-3xl text-brand-deep animate-rise">
-          OkayNow
+        <Link href="/" className="inline-block animate-rise">
+          <BrandLogo variant="primary" priority height={40} />
         </Link>
         <h1 className="mt-6 font-display text-3xl text-ink animate-rise-delay">
           Sign in

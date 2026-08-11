@@ -425,6 +425,28 @@ export function assignCaregiverFromRoster(
   });
 }
 
+export function inviteCaregiverToShift(
+  shiftId: string,
+  caregiverProfileId: string,
+) {
+  return request<ShiftClaim>(`/api/shifts/${shiftId}/invite`, {
+    method: "POST",
+    body: JSON.stringify({ caregiverProfileId }),
+  });
+}
+
+export function acceptShiftInvite(shiftId: string) {
+  return request<ShiftClaim>(`/api/shifts/${shiftId}/accept-invite`, {
+    method: "POST",
+  });
+}
+
+export function declineShiftInvite(shiftId: string) {
+  return request<ShiftClaim>(`/api/shifts/${shiftId}/decline-invite`, {
+    method: "POST",
+  });
+}
+
 export function getClientRates() {
   return request<{
     billRate: number;

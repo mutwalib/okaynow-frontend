@@ -191,6 +191,9 @@ export interface Shift {
   requiredHeadcount?: number;
   /** Active PENDING + CONFIRMED claims filling slots. */
   filledSlots?: number;
+  /** Extra $/hr when facility escalation surge is active. */
+  surgeBonusPay?: number;
+  surgeTierApplied?: number;
   createdBy: string;
   createdAt: string;
 }
@@ -212,7 +215,7 @@ export interface AssignedCaregiver {
   ratingCount: number;
   profilePhotoUrl: string | null;
   status: "PENDING" | "CONFIRMED" | "COMPLETED";
-  source: "MARKETPLACE" | "ASSIGNED";
+  source: "MARKETPLACE" | "ASSIGNED" | "INVITE";
 }
 
 export interface ScheduleRosterSlot {
@@ -221,7 +224,7 @@ export interface ScheduleRosterSlot {
   firstName: string;
   lastName: string;
   status: ShiftClaimStatus;
-  source: "MARKETPLACE" | "ASSIGNED";
+  source: "MARKETPLACE" | "ASSIGNED" | "INVITE";
 }
 
 export interface ScheduleShiftCard {
@@ -265,7 +268,7 @@ export interface ShiftClaim {
   caregiverLastName: string;
   caregiverEmail: string;
   status: ShiftClaimStatus;
-  source?: "MARKETPLACE" | "ASSIGNED";
+  source?: "MARKETPLACE" | "ASSIGNED" | "INVITE";
   claimedAt: string;
   releasedAt: string | null;
   cancelReason: string | null;
@@ -303,7 +306,7 @@ export interface CaregiverPayEntry {
   hours: number;
   payRate: number;
   amount: number;
-  paymentStatus: "PENDING" | "PAID";
+  paymentStatus: "PENDING" | "PROCESSING" | "PAID";
   payPeriodStart: string;
   payPeriodEnd: string;
   paidAt: string | null;
@@ -349,6 +352,10 @@ export type NotificationType =
   | "SHIFT_POSTED"
   | "SHIFT_CLAIMED"
   | "SHIFT_ASSIGNED"
+  | "SHIFT_INVITED"
+  | "SHIFT_INVITE_ACCEPTED"
+  | "SHIFT_INVITE_DECLINED"
+  | "SHIFT_INVITE_FAILED"
   | "SHIFT_CONFIRMED"
   | "SHIFT_RELEASED"
   | "SHIFT_HELD"
