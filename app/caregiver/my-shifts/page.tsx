@@ -277,10 +277,13 @@ export default function CaregiverMyShiftsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-display text-lg text-brand-deep">
-                        {formatMoney(shift.payRate)}/hr
+                        {formatMoney(Number(shift.payRate ?? 0))}/hr
                       </p>
                       <p className="text-xs text-ink-muted">
-                        {formatMoney(shift.payRate * shiftHours(shift))} estimated
+                        {formatMoney(
+                          Number(shift.payRate ?? 0) * shiftHours(shift),
+                        )}{" "}
+                        estimated
                       </p>
                     </div>
                   </div>
