@@ -42,6 +42,12 @@ export default function SupportPage() {
           Open shifts only appear when your profile includes matching
           qualifications and your agency has released shifts to the marketplace.
         </li>
+        <li>
+          To delete your account in the app: open <strong>Profile</strong>, scroll
+          to <strong>Delete account</strong>, and confirm. Sign-in is disabled and
+          your marketplace profile is removed; some visit and payroll records may
+          be retained as required by law.
+        </li>
       </ul>
 
       <h2>Accounts &amp; access</h2>
