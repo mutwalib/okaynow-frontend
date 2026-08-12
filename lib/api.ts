@@ -2,6 +2,7 @@ import {
   getAccessToken,
   getRefreshToken,
   setAccessToken,
+  setRefreshToken,
   clearAuthSession,
 } from "./auth-cookie";
 import type {
@@ -165,6 +166,25 @@ export interface ClientOption {
 
 let refreshPromise: Promise<string | null> | null = null;
 
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part || typeof atob !== "function") return null;
+    const padded =
+      part.replace(/-/g, "+").replace(/_/g, "/") +
+      "=".repeat((4 - (part.length % 4)) % 4);
+    return JSON.parse(atob(padded)) as { exp?: number };
+  } catch {
+    return null;
+  }
+}
+
+function accessTokenExpiresSoon(token: string, skewSeconds = 90): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== "number") return true;
+  return payload.exp * 1000 < Date.now() + skewSeconds * 1000;
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
@@ -183,6 +203,7 @@ async function refreshAccessToken(): Promise<string | null> {
         }
         const data = (await res.json()) as BackendAuthResponse;
         setAccessToken(data.accessToken);
+        if (data.refreshToken) setRefreshToken(data.refreshToken);
         return data.accessToken;
       } catch {
         clearAuthSession();
@@ -193,6 +214,21 @@ async function refreshAccessToken(): Promise<string | null> {
     })();
   }
   return refreshPromise;
+}
+
+/** Never returns an expired access JWT (avoids STOMP reconnect storms). */
+export async function ensureFreshAccessToken(
+  options: { force?: boolean } = {},
+): Promise<string | null> {
+  const current = getAccessToken();
+  if (!options.force && current && !accessTokenExpiresSoon(current)) {
+    return current;
+  }
+  const refreshed = await refreshAccessToken();
+  if (refreshed && !accessTokenExpiresSoon(refreshed, 0)) {
+    return refreshed;
+  }
+  return null;
 }
 
 async function request<T>(
@@ -284,6 +320,11 @@ export function resetPassword(email: string, code: string, newPassword: string) 
 
 export function getMe() {
   return request<UserResponse>("/api/users/me");
+}
+
+/** Soft-deletes the signed-in account. Caller should clear the local session. */
+export function deleteMyAccount() {
+  return request<void>("/api/users/me", { method: "DELETE" });
 }
 
 // --- caregivers ---

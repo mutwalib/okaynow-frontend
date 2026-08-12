@@ -11,6 +11,7 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/shift-card";
 import { ProfilePhotoField } from "@/components/profile-photo-field";
+import { DeleteAccountSection } from "@/components/delete-account-section";
 
 type FormValues = {
   firstName: string;
@@ -154,6 +155,8 @@ export default function ClientProfilePage() {
           {save.isPending ? "Saving…" : "Save profile"}
         </Button>
       </form>
+
+      <DeleteAccountSection />
     </div>
   );
 }
