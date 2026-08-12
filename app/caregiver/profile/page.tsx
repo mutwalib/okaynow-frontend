@@ -11,6 +11,7 @@ import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/shift-card";
 import { ProfilePhotoField } from "@/components/profile-photo-field";
+import { DeleteAccountSection } from "@/components/delete-account-section";
 
 type FormValues = {
   firstName: string;
@@ -270,6 +271,8 @@ export default function CaregiverProfilePage() {
           </ul>
         )}
       </section>
+
+      <DeleteAccountSection roleHint="Any open or upcoming claimed shifts will be released." />
     </div>
   );
 }
