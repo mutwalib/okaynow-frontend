@@ -7,7 +7,7 @@ import { useToast } from "@/lib/toast-context";
 import { forgotPassword, resetPassword } from "@/lib/api";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, PasswordInput } from "@/components/ui/field";
 
 export default function ForgotPasswordPage() {
   const { showToast } = useToast();
@@ -15,6 +15,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function onRequest(e: FormEvent) {
@@ -33,6 +34,10 @@ export default function ForgotPasswordPage() {
 
   async function onReset(e: FormEvent) {
     e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showToast("Passwords don’t match", "error");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await resetPassword(email.trim(), code.trim(), newPassword);
@@ -90,12 +95,27 @@ export default function ForgotPasswordPage() {
               />
             </Field>
             <Field label="New password">
-              <Input
-                type="password"
+              <PasswordInput
                 required
                 minLength={8}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </Field>
+            <Field
+              label="Confirm password"
+              error={
+                confirmPassword.length > 0 && newPassword !== confirmPassword
+                  ? "Passwords don’t match"
+                  : undefined
+              }
+            >
+              <PasswordInput
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
               />
             </Field>

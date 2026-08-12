@@ -19,7 +19,7 @@ import {
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, PasswordInput, Select } from "@/components/ui/field";
 import {
   DEFAULT_STATE,
   SERVICE_REGION_LABEL,
@@ -49,6 +49,7 @@ function RegisterForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [registeringForSelf, setRegisteringForSelf] = useState("true");
   const [medicaidEligible, setMedicaidEligible] = useState<"" | MedicaidEligibility>("");
   const [relationshipToCareRecipient, setRelationshipToCareRecipient] = useState<
@@ -93,6 +94,10 @@ function RegisterForm() {
     }
     if (!acceptedLegal) {
       showToast("Accept the Terms, Privacy Policy, and Platform Policy to continue", "error");
+      return;
+    }
+    if (password !== confirmPassword) {
+      showToast("Passwords don’t match", "error");
       return;
     }
     const docIds = (legalDocs.data ?? []).map((d) => d.id);
@@ -329,13 +334,28 @@ function RegisterForm() {
             />
           </Field>
           <Field label="Password">
-            <Input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               required
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Confirm password"
+            error={
+              confirmPassword.length > 0 && password !== confirmPassword
+                ? "Passwords don’t match"
+                : undefined
+            }
+          >
+            <PasswordInput
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </Field>
 
