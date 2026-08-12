@@ -139,6 +139,9 @@ export default function LandingPage() {
             <Link href="/support" className="hover:text-brand-deep">
               Support
             </Link>
+            <Link href="/account-deletion" className="hover:text-brand-deep">
+              Delete account
+            </Link>
             <Link href="/privacy" className="hover:text-brand-deep">
               Privacy
             </Link>
