@@ -135,6 +135,17 @@ export default function LandingPage() {
       <footer className="border-t border-line bg-paper px-6 py-8 text-sm text-ink-muted sm:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <BrandLogo variant="primary" height={32} />
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/support" className="hover:text-brand-deep">
+              Support
+            </Link>
+            <Link href="/privacy" className="hover:text-brand-deep">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-brand-deep">
+              Terms
+            </Link>
+          </nav>
           <span>Massachusetts home care staffing</span>
         </div>
       </footer>
