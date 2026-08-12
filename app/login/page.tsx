@@ -9,7 +9,7 @@ import { ROLE_HOME } from "@/lib/types";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, PasswordInput } from "@/components/ui/field";
 
 function LoginForm() {
   const { login, isAuthenticated, user, isLoading } = useAuth();
@@ -70,8 +70,7 @@ function LoginForm() {
             />
           </Field>
           <Field label="Password">
-            <Input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               required
               minLength={8}
