@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -447,7 +447,9 @@ export default function PendingReviewPage() {
 
   useEffect(() => {
     if (!status.data || !user) return;
-    setAccountStatus(status.data.userStatus);
+    if (user.status !== status.data.userStatus) {
+      setAccountStatus(status.data.userStatus);
+    }
     if (!status.data.pendingReview) {
       router.replace(
         homePathForUser({
@@ -458,11 +460,11 @@ export default function PendingReviewPage() {
     }
   }, [router, setAccountStatus, status.data, user]);
 
-  const refreshOnboarding = () => {
+  const refreshOnboarding = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ["onboarding-me"] });
     void qc.invalidateQueries({ queryKey: ["caregiver-me"] });
     void qc.invalidateQueries({ queryKey: ["client-me"] });
-  };
+  }, [qc]);
 
   const submitMut = useMutation({
     mutationFn: submitApplication,
