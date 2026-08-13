@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setAccountStatus = useCallback((status: UserStatus) => {
     setUser((prev) => {
-      if (!prev) return prev;
+      if (!prev || prev.status === status) return prev;
       const next = { ...prev, status };
       const access = getAccessToken();
       const refresh = getRefreshToken();
