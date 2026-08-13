@@ -85,7 +85,7 @@ export default function LandingPage() {
             className="max-w-full animate-rise"
           />
           <h1 className="mt-4 max-w-xl text-xl font-medium text-white/95 sm:text-2xl animate-rise-delay">
-            Same caregivers. Clear rates. Massachusetts home care that runs.
+            Same caregivers. Clear rates.
           </h1>
           <p className="mt-3 max-w-lg text-base text-white/80 animate-rise-delay">
             Not another gig board. OkayNow keeps families with caregivers they
