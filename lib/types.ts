@@ -112,6 +112,10 @@ export interface CaregiverProfile {
   hourlyRateMin: number | null;
   hourlyRateMax: number | null;
   serviceRadiusMiles: number | null;
+  homeAddressLine: string | null;
+  homeCity: string | null;
+  homeState: string | null;
+  homeZip: string | null;
   homeLat: number | null;
   homeLng: number | null;
   profilePhotoUrl: string | null;

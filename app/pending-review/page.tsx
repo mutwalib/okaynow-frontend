@@ -14,7 +14,13 @@ import {
   type OnboardingRequestItem,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { QUALIFICATIONS, homePathForUser, type Qualification } from "@/lib/types";
+import {
+  QUALIFICATIONS,
+  homePathForUser,
+  type CaregiverProfile,
+  type ClientProfile,
+  type Qualification,
+} from "@/lib/types";
 import { DEFAULT_STATE, maZipMessage } from "@/lib/service-region";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -117,54 +123,71 @@ function RequestCard({
   );
 }
 
-function CaregiverApplicationForm() {
-  const { showToast } = useToast();
+function CaregiverApplicationForm({ onSaved }: { onSaved: () => void }) {
   const profile = useQuery({
     queryKey: ["caregiver-me"],
     queryFn: getMyCaregiverProfile,
   });
-  const [quals, setQuals] = useState<Qualification[]>([]);
-  const [rateMin, setRateMin] = useState("");
-  const [rateMax, setRateMax] = useState("");
-  const [radius, setRadius] = useState("");
-  const [homeLat, setHomeLat] = useState("");
-  const [homeLng, setHomeLng] = useState("");
+  if (!profile.data) return null;
+  return (
+    <CaregiverApplicationFields
+      key={profile.data.id}
+      profile={profile.data}
+      onSaved={onSaved}
+    />
+  );
+}
 
-  useEffect(() => {
-    if (!profile.data) return;
-    setQuals(profile.data.qualifications ?? []);
-    setRateMin(
-      profile.data.hourlyRateMin != null ? String(profile.data.hourlyRateMin) : "",
-    );
-    setRateMax(
-      profile.data.hourlyRateMax != null ? String(profile.data.hourlyRateMax) : "",
-    );
-    setRadius(
-      profile.data.serviceRadiusMiles != null
-        ? String(profile.data.serviceRadiusMiles)
-        : "",
-    );
-    setHomeLat(profile.data.homeLat != null ? String(profile.data.homeLat) : "");
-    setHomeLng(profile.data.homeLng != null ? String(profile.data.homeLng) : "");
-  }, [profile.data]);
+function CaregiverApplicationFields({
+  profile,
+  onSaved,
+}: {
+  profile: CaregiverProfile;
+  onSaved: () => void;
+}) {
+  const { showToast } = useToast();
+  const [quals, setQuals] = useState<Qualification[]>(
+    () => profile.qualifications ?? [],
+  );
+  const [rateMin, setRateMin] = useState(() =>
+    profile.hourlyRateMin != null ? String(profile.hourlyRateMin) : "",
+  );
+  const [rateMax, setRateMax] = useState(() =>
+    profile.hourlyRateMax != null ? String(profile.hourlyRateMax) : "",
+  );
+  const [radius, setRadius] = useState(() =>
+    profile.serviceRadiusMiles != null ? String(profile.serviceRadiusMiles) : "",
+  );
+  const [addressLine, setAddressLine] = useState(
+    () => profile.homeAddressLine ?? "",
+  );
+  const [city, setCity] = useState(() => profile.homeCity ?? "");
+  const [zip, setZip] = useState(() => profile.homeZip ?? "");
 
   const save = useMutation({
-    mutationFn: () =>
-      updateMyCaregiverProfile({
-        firstName: profile.data!.firstName,
-        lastName: profile.data!.lastName,
+    mutationFn: () => {
+      if (zip && maZipMessage(zip) !== true) {
+        throw new Error(String(maZipMessage(zip)));
+      }
+      return updateMyCaregiverProfile({
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         qualifications: quals,
         hourlyRateMin: rateMin === "" ? null : Number(rateMin),
         hourlyRateMax: rateMax === "" ? null : Number(rateMax),
         serviceRadiusMiles: radius === "" ? null : Number(radius),
-        homeLat: homeLat === "" ? null : Number(homeLat),
-        homeLng: homeLng === "" ? null : Number(homeLng),
-      }),
-    onSuccess: () => showToast("Application details saved", "success"),
+        homeAddressLine: addressLine || null,
+        homeCity: city || null,
+        homeState: DEFAULT_STATE,
+        homeZip: zip || null,
+      });
+    },
+    onSuccess: () => {
+      showToast("Application details saved", "success");
+      onSaved();
+    },
     onError: (e: Error) => showToast(e.message, "error"),
   });
-
-  if (!profile.data) return null;
 
   return (
     <form
@@ -177,7 +200,7 @@ function CaregiverApplicationForm() {
       <div>
         <h2 className="font-display text-xl text-ink">Application details</h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Add qualifications and home location so the agency can review your fit.
+          Add qualifications and your home address so we can match nearby shifts.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -214,14 +237,25 @@ function CaregiverApplicationForm() {
           <Input value={radius} onChange={(e) => setRadius(e.target.value)} />
         </Field>
       </div>
+      <Field label="Street address">
+        <Input
+          value={addressLine}
+          onChange={(e) => setAddressLine(e.target.value)}
+          required
+        />
+      </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Home latitude">
-          <Input value={homeLat} onChange={(e) => setHomeLat(e.target.value)} />
+        <Field label="City">
+          <Input value={city} onChange={(e) => setCity(e.target.value)} required />
         </Field>
-        <Field label="Home longitude">
-          <Input value={homeLng} onChange={(e) => setHomeLng(e.target.value)} />
+        <Field label="ZIP">
+          <Input value={zip} onChange={(e) => setZip(e.target.value)} required />
         </Field>
       </div>
+      <p className="text-xs text-ink-muted">
+        We locate your address automatically for shift-distance matching. State is
+        Massachusetts.
+      </p>
       <Button type="submit" disabled={save.isPending}>
         {save.isPending ? "Saving…" : "Save details"}
       </Button>
@@ -229,24 +263,35 @@ function CaregiverApplicationForm() {
   );
 }
 
-function ClientApplicationForm() {
-  const { showToast } = useToast();
+function ClientApplicationForm({ onSaved }: { onSaved: () => void }) {
   const profile = useQuery({
     queryKey: ["client-me"],
     queryFn: getMyClientProfile,
   });
-  const [addressLine, setAddressLine] = useState("");
-  const [city, setCity] = useState("");
-  const [zip, setZip] = useState("");
-  const [careNeeds, setCareNeeds] = useState("");
+  if (!profile.data) return null;
+  return (
+    <ClientApplicationFields
+      key={profile.data.id}
+      profile={profile.data}
+      onSaved={onSaved}
+    />
+  );
+}
 
-  useEffect(() => {
-    if (!profile.data) return;
-    setAddressLine(profile.data.addressLine ?? "");
-    setCity(profile.data.city ?? "");
-    setZip(profile.data.zip ?? "");
-    setCareNeeds(profile.data.careNeeds ?? "");
-  }, [profile.data]);
+function ClientApplicationFields({
+  profile,
+  onSaved,
+}: {
+  profile: ClientProfile;
+  onSaved: () => void;
+}) {
+  const { showToast } = useToast();
+  const [addressLine, setAddressLine] = useState(
+    () => profile.addressLine ?? "",
+  );
+  const [city, setCity] = useState(() => profile.city ?? "");
+  const [zip, setZip] = useState(() => profile.zip ?? "");
+  const [careNeeds, setCareNeeds] = useState(() => profile.careNeeds ?? "");
 
   const save = useMutation({
     mutationFn: () => {
@@ -254,8 +299,8 @@ function ClientApplicationForm() {
         throw new Error(String(maZipMessage(zip)));
       }
       return updateMyClientProfile({
-        firstName: profile.data!.firstName,
-        lastName: profile.data!.lastName,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         state: DEFAULT_STATE,
         addressLine: addressLine || null,
         city: city || null,
@@ -263,11 +308,12 @@ function ClientApplicationForm() {
         careNeeds: careNeeds || null,
       });
     },
-    onSuccess: () => showToast("Application details saved", "success"),
+    onSuccess: () => {
+      showToast("Application details saved", "success");
+      onSaved();
+    },
     onError: (e: Error) => showToast(e.message, "error"),
   });
-
-  if (!profile.data) return null;
 
   return (
     <form
@@ -284,14 +330,18 @@ function ClientApplicationForm() {
         </p>
       </div>
       <Field label="Street address">
-        <Input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} />
+        <Input
+          value={addressLine}
+          onChange={(e) => setAddressLine(e.target.value)}
+          required
+        />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="City">
-          <Input value={city} onChange={(e) => setCity(e.target.value)} />
+          <Input value={city} onChange={(e) => setCity(e.target.value)} required />
         </Field>
         <Field label="ZIP">
-          <Input value={zip} onChange={(e) => setZip(e.target.value)} />
+          <Input value={zip} onChange={(e) => setZip(e.target.value)} required />
         </Field>
       </div>
       <Field label="Care needs">
@@ -353,41 +403,63 @@ export default function PendingReviewPage() {
     );
   }
 
+  const applicationComplete = status.data?.applicationComplete === true;
   const openOrSubmitted =
     status.data?.requests.filter(
       (r) => r.status === "OPEN" || r.status === "SUBMITTED",
     ) ?? [];
+  const refreshOnboarding = () => {
+    void qc.invalidateQueries({ queryKey: ["onboarding-me"] });
+    void qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+    void qc.invalidateQueries({ queryKey: ["client-me"] });
+  };
 
   return (
     <div className="min-h-screen atmosphere">
       <div className="mx-auto max-w-xl px-6 py-12">
         <BrandLogo variant="primary" height={36} />
         <h1 className="mt-8 font-display text-3xl text-ink">
-          Thanks for registering
+          {applicationComplete
+            ? "Thanks for registering"
+            : "Complete your application"}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-muted">
           {status.data?.message ??
-            "Our team is reviewing your application and will let you know once you are verified. If we need anything else, it will appear below."}
+            "Finish the steps below to complete your OkayNow application."}
         </p>
 
+        {!applicationComplete && (status.data?.applicationMissing?.length ?? 0) > 0 ? (
+          <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-ink">
+            {status.data!.applicationMissing.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
+
         <div className="mt-8 space-y-4">
-          {user.role === "CAREGIVER" ? <CaregiverApplicationForm /> : null}
-          {user.role === "CLIENT" ? <ClientApplicationForm /> : null}
+          {!applicationComplete && user.role === "CAREGIVER" ? (
+            <CaregiverApplicationForm onSaved={refreshOnboarding} />
+          ) : null}
+          {!applicationComplete && user.role === "CLIENT" ? (
+            <ClientApplicationForm onSaved={refreshOnboarding} />
+          ) : null}
 
           {status.isLoading ? (
             <p className="text-sm text-ink-muted">Loading requests…</p>
           ) : null}
-          {openOrSubmitted.length === 0 && !status.isLoading ? (
+
+          {applicationComplete && openOrSubmitted.length === 0 && !status.isLoading ? (
             <div className="rounded-lg border border-dashed border-line bg-paper/70 p-5 text-sm text-ink-muted">
               No additional information is requested right now. We&apos;ll email
               you when your account is approved.
             </div>
           ) : null}
+
           {openOrSubmitted.map((item) => (
             <RequestCard
               key={item.id}
               item={item}
-              onDone={() => qc.invalidateQueries({ queryKey: ["onboarding-me"] })}
+              onDone={refreshOnboarding}
             />
           ))}
         </div>
