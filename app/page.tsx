@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Building2,
@@ -9,8 +13,28 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ButtonLink } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import { homePathForUser } from "@/lib/types";
 
 export default function LandingPage() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated && user) {
+      router.replace(homePathForUser(user));
+    }
+  }, [isAuthenticated, isLoading, router, user]);
+
+  if (isLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center atmosphere text-ink-muted">
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <section className="relative flex min-h-[100svh] flex-col overflow-hidden">
