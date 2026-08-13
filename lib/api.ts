@@ -359,6 +359,8 @@ export interface OnboardingRequestItem {
 export interface OnboardingStatus {
   userStatus: UserStatus;
   pendingReview: boolean;
+  applicationReady: boolean;
+  applicationSubmitted: boolean;
   applicationComplete: boolean;
   applicationMissing: string[];
   message: string;
@@ -367,6 +369,12 @@ export interface OnboardingStatus {
 
 export function getOnboardingStatus() {
   return request<OnboardingStatus>("/api/onboarding/me");
+}
+
+export function submitApplication() {
+  return request<OnboardingStatus>("/api/onboarding/me/submit", {
+    method: "POST",
+  });
 }
 
 export function submitOnboardingText(requestId: string, responseText: string) {

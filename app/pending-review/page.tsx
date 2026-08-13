@@ -7,6 +7,8 @@ import {
   getMyCaregiverProfile,
   getMyClientProfile,
   getOnboardingStatus,
+  mediaUrl,
+  submitApplication,
   submitOnboardingFile,
   submitOnboardingText,
   updateMyCaregiverProfile,
@@ -28,6 +30,11 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/lib/toast-context";
 import { CheckCircle2, LogOut, Upload } from "lucide-react";
 
+function isImageUrl(url: string | null | undefined) {
+  if (!url) return false;
+  return /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url) || url.startsWith("blob:");
+}
+
 function RequestCard({
   item,
   onDone,
@@ -37,7 +44,19 @@ function RequestCard({
 }) {
   const { showToast } = useToast();
   const [text, setText] = useState(item.responseText ?? "");
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const open = item.status === "OPEN" || item.status === "SUBMITTED";
+  const remotePreview = mediaUrl(item.fileUrl);
+  const previewSrc = localPreview ?? (isImageUrl(item.fileUrl) || item.fieldType === "PROFILE_PHOTO"
+    ? remotePreview
+    : null);
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
 
   const textMut = useMutation({
     mutationFn: () => submitOnboardingText(item.id, text),
@@ -97,7 +116,33 @@ function RequestCard({
           </Button>
         </form>
       ) : (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-3">
+          {previewSrc ? (
+            <div className="overflow-hidden rounded-lg border border-line bg-paper">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc}
+                alt={item.fieldType === "PROFILE_PHOTO" ? "Profile photo preview" : "Upload preview"}
+                className={
+                  item.fieldType === "PROFILE_PHOTO"
+                    ? "mx-auto h-40 w-40 object-cover"
+                    : "max-h-56 w-full object-contain"
+                }
+              />
+            </div>
+          ) : remotePreview && item.fileUrl ? (
+            <a
+              href={remotePreview}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-brand-deep underline"
+            >
+              View uploaded file
+            </a>
+          ) : null}
+          {fileName ? (
+            <p className="text-sm text-ink-muted">{fileName}</p>
+          ) : null}
           <Field label={item.fieldType === "PROFILE_PHOTO" ? "Photo" : "Document"}>
             <Input
               type="file"
@@ -108,14 +153,31 @@ function RequestCard({
               }
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) fileMut.mutate(file);
+                if (!file) return;
+                setFileName(file.name);
+                if (file.type.startsWith("image/")) {
+                  setLocalPreview((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return URL.createObjectURL(file);
+                  });
+                } else {
+                  setLocalPreview((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
+                }
+                fileMut.mutate(file);
               }}
               disabled={fileMut.isPending}
             />
           </Field>
           <p className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
             <Upload className="h-3.5 w-3.5" aria-hidden />
-            {fileMut.isPending ? "Uploading…" : "Choose a file to upload"}
+            {fileMut.isPending
+              ? "Uploading…"
+              : item.status === "SUBMITTED"
+                ? "Replace file"
+                : "Choose a file to upload"}
           </p>
         </div>
       )}
@@ -361,6 +423,7 @@ function ClientApplicationFields({
 export default function PendingReviewPage() {
   const { user, isLoading, isAuthenticated, logout, setAccountStatus } =
     useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const qc = useQueryClient();
 
@@ -395,6 +458,21 @@ export default function PendingReviewPage() {
     }
   }, [router, setAccountStatus, status.data, user]);
 
+  const refreshOnboarding = () => {
+    void qc.invalidateQueries({ queryKey: ["onboarding-me"] });
+    void qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+    void qc.invalidateQueries({ queryKey: ["client-me"] });
+  };
+
+  const submitMut = useMutation({
+    mutationFn: submitApplication,
+    onSuccess: () => {
+      showToast("Application submitted for review", "success");
+      refreshOnboarding();
+    },
+    onError: (e: Error) => showToast(e.message, "error"),
+  });
+
   if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center atmosphere text-ink-muted">
@@ -403,23 +481,19 @@ export default function PendingReviewPage() {
     );
   }
 
-  const applicationComplete = status.data?.applicationComplete === true;
+  const applicationSubmitted = status.data?.applicationSubmitted === true;
+  const applicationReady = status.data?.applicationReady === true;
   const openOrSubmitted =
     status.data?.requests.filter(
       (r) => r.status === "OPEN" || r.status === "SUBMITTED",
     ) ?? [];
-  const refreshOnboarding = () => {
-    void qc.invalidateQueries({ queryKey: ["onboarding-me"] });
-    void qc.invalidateQueries({ queryKey: ["caregiver-me"] });
-    void qc.invalidateQueries({ queryKey: ["client-me"] });
-  };
 
   return (
     <div className="min-h-screen atmosphere">
       <div className="mx-auto max-w-xl px-6 py-12">
         <BrandLogo variant="primary" height={36} />
         <h1 className="mt-8 font-display text-3xl text-ink">
-          {applicationComplete
+          {applicationSubmitted
             ? "Thanks for registering"
             : "Complete your application"}
         </h1>
@@ -428,7 +502,8 @@ export default function PendingReviewPage() {
             "Finish the steps below to complete your OkayNow application."}
         </p>
 
-        {!applicationComplete && (status.data?.applicationMissing?.length ?? 0) > 0 ? (
+        {!applicationSubmitted &&
+        (status.data?.applicationMissing?.length ?? 0) > 0 ? (
           <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-ink">
             {status.data!.applicationMissing.map((item) => (
               <li key={item}>{item}</li>
@@ -437,10 +512,10 @@ export default function PendingReviewPage() {
         ) : null}
 
         <div className="mt-8 space-y-4">
-          {!applicationComplete && user.role === "CAREGIVER" ? (
+          {!applicationSubmitted && user.role === "CAREGIVER" ? (
             <CaregiverApplicationForm onSaved={refreshOnboarding} />
           ) : null}
-          {!applicationComplete && user.role === "CLIENT" ? (
+          {!applicationSubmitted && user.role === "CLIENT" ? (
             <ClientApplicationForm onSaved={refreshOnboarding} />
           ) : null}
 
@@ -448,20 +523,63 @@ export default function PendingReviewPage() {
             <p className="text-sm text-ink-muted">Loading requests…</p>
           ) : null}
 
-          {applicationComplete && openOrSubmitted.length === 0 && !status.isLoading ? (
+          {!applicationSubmitted
+            ? openOrSubmitted.map((item) => (
+                <RequestCard
+                  key={item.id}
+                  item={item}
+                  onDone={refreshOnboarding}
+                />
+              ))
+            : openOrSubmitted
+                .filter((r) => r.status === "OPEN")
+                .map((item) => (
+                  <RequestCard
+                    key={item.id}
+                    item={item}
+                    onDone={refreshOnboarding}
+                  />
+                ))}
+
+          {!applicationSubmitted && applicationReady ? (
+            <div className="rounded-lg border border-brand/30 bg-brand-soft/40 p-5">
+              <h2 className="font-display text-xl text-ink">
+                Submit your application
+              </h2>
+              <p className="mt-2 text-sm text-ink-muted">
+                You&apos;ve entered everything we need. Confirm to send your
+                application for agency review. You&apos;ll stay here until you
+                are verified.
+              </p>
+              <Button
+                type="button"
+                className="mt-4"
+                disabled={submitMut.isPending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Submit your OkayNow application for agency review?",
+                    )
+                  ) {
+                    submitMut.mutate();
+                  }
+                }}
+              >
+                {submitMut.isPending
+                  ? "Submitting…"
+                  : "Submit application for review"}
+              </Button>
+            </div>
+          ) : null}
+
+          {applicationSubmitted &&
+          openOrSubmitted.filter((r) => r.status === "OPEN").length === 0 &&
+          !status.isLoading ? (
             <div className="rounded-lg border border-dashed border-line bg-paper/70 p-5 text-sm text-ink-muted">
               No additional information is requested right now. We&apos;ll email
               you when your account is approved.
             </div>
           ) : null}
-
-          {openOrSubmitted.map((item) => (
-            <RequestCard
-              key={item.id}
-              item={item}
-              onDone={refreshOnboarding}
-            />
-          ))}
         </div>
 
         <Button
