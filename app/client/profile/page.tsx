@@ -3,15 +3,16 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMyClientProfile, updateMyClientProfile, uploadClientPhoto } from "@/lib/api";
+import { getMyClientProfile, updateMyClientProfile } from "@/lib/api";
 import { DEFAULT_STATE, SERVICE_REGION_LABEL, maZipMessage } from "@/lib/service-region";
 import { useToast } from "@/lib/toast-context";
+import { useAuth } from "@/lib/auth-context";
 import { Save } from "lucide-react";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/shift-card";
-import { ProfilePhotoField } from "@/components/profile-photo-field";
 import { DeleteAccountSection } from "@/components/delete-account-section";
+import { ChangePasswordSection } from "@/components/change-password-section";
 
 type FormValues = {
   firstName: string;
@@ -25,6 +26,8 @@ type FormValues = {
 
 export default function ClientProfilePage() {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const locked = user?.status === "ACTIVE";
   const qc = useQueryClient();
   const profile = useQuery({
     queryKey: ["client-me"],
@@ -68,15 +71,6 @@ export default function ClientProfilePage() {
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
-  const photo = useMutation({
-    mutationFn: uploadClientPhoto,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client-me"] });
-      showToast("Photo updated", "success");
-    },
-    onError: (err: Error) => showToast(err.message, "error"),
-  });
-
   if (profile.isLoading) return <LoadingBlock />;
   if (profile.isError) {
     return <p className="text-danger">Could not load profile.</p>;
@@ -87,19 +81,18 @@ export default function ClientProfilePage() {
       <div>
         <h1 className="font-display text-3xl text-ink">Care profile</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Home address and care needs help schedulers post accurate shifts.
+          {locked
+            ? "Your profile is locked after agency verification. You can still change your password below."
+            : "Home address and care needs help schedulers post accurate shifts."}
         </p>
       </div>
       <form
         className="space-y-4 rounded-lg border border-line bg-paper p-5"
-        onSubmit={handleSubmit((v) => save.mutate(v))}
+        onSubmit={handleSubmit((v) => {
+          if (locked) return;
+          save.mutate(v);
+        })}
       >
-        <ProfilePhotoField
-          photoUrl={profile.data?.profilePhotoUrl}
-          name={`${profile.data?.firstName ?? ""} ${profile.data?.lastName ?? ""}`}
-          uploading={photo.isPending}
-          onUpload={(file) => photo.mutate(file)}
-        />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
             <Input
@@ -123,11 +116,11 @@ export default function ClientProfilePage() {
           if a correction is required.
         </p>
         <Field label="Street address">
-          <Input {...register("addressLine")} />
+          <Input disabled={locked} {...register("addressLine")} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="City">
-            <Input {...register("city")} />
+            <Input disabled={locked} {...register("city")} />
           </Field>
           <Field label="State">
             <Input
@@ -141,21 +134,30 @@ export default function ClientProfilePage() {
             </span>
           </Field>
           <Field label="ZIP">
-            <Input inputMode="numeric" placeholder="02108" {...register("zip")} />
+            <Input
+              inputMode="numeric"
+              placeholder="02108"
+              disabled={locked}
+              {...register("zip")}
+            />
           </Field>
         </div>
         <Field label="Care needs">
           <Textarea
             placeholder="ADLs, mobility, medication reminders…"
+            disabled={locked}
             {...register("careNeeds")}
           />
         </Field>
-        <Button type="submit" disabled={save.isPending}>
-          {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
-          {save.isPending ? "Saving…" : "Save profile"}
-        </Button>
+        {!locked ? (
+          <Button type="submit" disabled={save.isPending}>
+            {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
+            {save.isPending ? "Saving…" : "Save profile"}
+          </Button>
+        ) : null}
       </form>
 
+      <ChangePasswordSection />
       <DeleteAccountSection />
     </div>
   );

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import type { UserRole } from "@/lib/types";
-import { ROLE_HOME } from "@/lib/types";
+import { homePathForUser } from "@/lib/types";
 
 export function RoleGuard({
   allow,
@@ -22,12 +22,25 @@ export function RoleGuard({
       router.replace("/login");
       return;
     }
+    if (
+      (user.role === "CAREGIVER" || user.role === "CLIENT") &&
+      user.status === "PENDING_REVIEW"
+    ) {
+      router.replace("/pending-review");
+      return;
+    }
     if (!allow.includes(user.role)) {
-      router.replace(ROLE_HOME[user.role]);
+      router.replace(homePathForUser(user));
     }
   }, [allow, isAuthenticated, isLoading, router, user]);
 
-  if (isLoading || !user || !allow.includes(user.role)) {
+  if (
+    isLoading ||
+    !user ||
+    !allow.includes(user.role) ||
+    ((user.role === "CAREGIVER" || user.role === "CLIENT") &&
+      user.status === "PENDING_REVIEW")
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center atmosphere text-ink-muted">
         Loading…

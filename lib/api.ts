@@ -23,6 +23,7 @@ import type {
   ClientRosterCaregiver,
   UserResponse,
   UserRole,
+  UserStatus,
   CaregiverPaySummary,
   CaregiverPayEntry,
   Visit,
@@ -50,6 +51,7 @@ export interface BackendAuthResponse {
   userId: string;
   email: string;
   role: UserRole;
+  status?: UserStatus;
 }
 
 export interface RegisterPayload {
@@ -91,6 +93,7 @@ export interface LoginResult {
   expiresInSeconds?: number | null;
   userId?: string | null;
   role?: UserRole | null;
+  status?: UserStatus | null;
 }
 
 export interface MessageResponse {
@@ -318,6 +321,13 @@ export function resetPassword(email: string, code: string, newPassword: string) 
   });
 }
 
+export function changePassword(currentPassword: string, newPassword: string) {
+  return request<MessageResponse>("/api/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
 export function getMe() {
   return request<UserResponse>("/api/users/me");
 }
@@ -325,6 +335,55 @@ export function getMe() {
 /** Soft-deletes the signed-in account. Caller should clear the local session. */
 export function deleteMyAccount() {
   return request<void>("/api/users/me", { method: "DELETE" });
+}
+
+export type OnboardingFieldType = "TEXT" | "FILE" | "PROFILE_PHOTO";
+export type OnboardingRequestStatus =
+  | "OPEN"
+  | "SUBMITTED"
+  | "ACCEPTED"
+  | "CANCELLED";
+
+export interface OnboardingRequestItem {
+  id: string;
+  title: string;
+  instructions: string | null;
+  fieldType: OnboardingFieldType;
+  status: OnboardingRequestStatus;
+  responseText: string | null;
+  fileUrl: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+}
+
+export interface OnboardingStatus {
+  userStatus: UserStatus;
+  pendingReview: boolean;
+  message: string;
+  requests: OnboardingRequestItem[];
+}
+
+export function getOnboardingStatus() {
+  return request<OnboardingStatus>("/api/onboarding/me");
+}
+
+export function submitOnboardingText(requestId: string, responseText: string) {
+  return request<OnboardingRequestItem>(
+    `/api/onboarding/me/requests/${requestId}/text`,
+    {
+      method: "POST",
+      body: JSON.stringify({ responseText }),
+    },
+  );
+}
+
+export function submitOnboardingFile(requestId: string, file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return request<OnboardingRequestItem>(
+    `/api/onboarding/me/requests/${requestId}/file`,
+    { method: "POST", body },
+  );
 }
 
 // --- caregivers ---

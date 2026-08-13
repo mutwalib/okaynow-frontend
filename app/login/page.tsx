@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { formatAuthError, useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast-context";
-import { ROLE_HOME } from "@/lib/types";
+import { homePathForUser } from "@/lib/types";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -23,7 +23,11 @@ function LoginForm() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
       const next = params.get("next");
-      router.replace(next || ROLE_HOME[user.role]);
+      router.replace(
+        user.status === "PENDING_REVIEW"
+          ? "/pending-review"
+          : next || homePathForUser(user),
+      );
     }
   }, [isAuthenticated, isLoading, params, router, user]);
 
@@ -34,7 +38,11 @@ function LoginForm() {
       const u = await login({ email, password });
       showToast("Welcome back", "success");
       const next = params.get("next");
-      router.push(next || ROLE_HOME[u.role]);
+      router.push(
+        u.status === "PENDING_REVIEW"
+          ? "/pending-review"
+          : next || homePathForUser(u),
+      );
     } catch (err) {
       const msg = formatAuthError(err);
       showToast(msg, "error");

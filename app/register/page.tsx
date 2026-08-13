@@ -10,8 +10,8 @@ import { getCurrentLegalDocuments } from "@/lib/api";
 import {
   CARE_RECIPIENT_RELATIONSHIP_LABEL,
   MEDICAID_ELIGIBILITY_LABEL,
-  ROLE_HOME,
   ROLE_LABEL,
+  homePathForUser,
   type CareRecipientRelationship,
   type MedicaidEligibility,
   type UserRole,
@@ -66,7 +66,7 @@ function RegisterForm() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      router.replace(ROLE_HOME[user.role]);
+      router.replace(homePathForUser(user));
     }
   }, [isAuthenticated, isLoading, router, user]);
 
