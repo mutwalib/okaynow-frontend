@@ -195,15 +195,17 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "CAREGIVER") return;
+    if (!isAuthenticated || user?.role !== "CAREGIVER" || user?.status === "PENDING_REVIEW") {
+      return;
+    }
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "default") {
       void Notification.requestPermission().catch(() => undefined);
     }
-  }, [isAuthenticated, user?.role]);
+  }, [isAuthenticated, user?.role, user?.status]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || user?.status === "PENDING_REVIEW") {
       clientRef.current?.deactivate();
       clientRef.current = null;
       setConnected(false);
@@ -291,6 +293,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     queryClient,
     showToast,
     user?.role,
+    user?.status,
   ]);
 
   const markRead = useCallback(

@@ -6,7 +6,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { formatAuthError, useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast-context";
 import { resendVerification } from "@/lib/api";
-import { ROLE_HOME } from "@/lib/types";
+import { homePathForUser } from "@/lib/types";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -24,7 +24,7 @@ function VerifyEmailForm() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      router.replace(ROLE_HOME[user.role]);
+      router.replace(homePathForUser(user));
     }
   }, [isAuthenticated, isLoading, router, user]);
 
@@ -34,7 +34,7 @@ function VerifyEmailForm() {
     try {
       const u = await completeEmailVerification(email.trim(), code.trim());
       showToast("Email verified — welcome", "success");
-      router.push(ROLE_HOME[u.role]);
+      router.push(homePathForUser(u));
     } catch (err) {
       showToast(formatAuthError(err), "error");
     } finally {

@@ -6,12 +6,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyCaregiverProfile, updateMyCaregiverProfile, uploadCaregiverPhoto, getMyPublishedReviews } from "@/lib/api";
 import { QUALIFICATIONS, type Qualification } from "@/lib/types";
 import { useToast } from "@/lib/toast-context";
+import { useAuth } from "@/lib/auth-context";
 import { Save, Star } from "lucide-react";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/shift-card";
 import { ProfilePhotoField } from "@/components/profile-photo-field";
 import { DeleteAccountSection } from "@/components/delete-account-section";
+import { ChangePasswordSection } from "@/components/change-password-section";
 
 type FormValues = {
   firstName: string;
@@ -26,6 +28,8 @@ type FormValues = {
 
 export default function CaregiverProfilePage() {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const locked = user?.status === "ACTIVE";
   const qc = useQueryClient();
   const profile = useQuery({
     queryKey: ["caregiver-me"],
@@ -99,6 +103,7 @@ export default function CaregiverProfilePage() {
   });
 
   function toggleQual(q: Qualification) {
+    if (locked) return;
     const next = selected.includes(q)
       ? selected.filter((x) => x !== q)
       : [...selected, q];
@@ -120,21 +125,27 @@ export default function CaregiverProfilePage() {
       <div>
         <h1 className="font-display text-3xl text-ink">Your profile</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Set your qualifications, pay range, and service area. Free OPEN shifts
-          in your jurisdiction appear on the board for you to claim — assignments
-          are not permanent.
+          {locked
+            ? "Your profile is locked after agency verification. You can still change your password below."
+            : "Set your qualifications, pay range, and service area before the agency finishes review."}
         </p>
       </div>
 
       <form
         className="space-y-5 rounded-lg border border-line bg-paper p-5"
-        onSubmit={handleSubmit((v) => save.mutate(v))}
+        onSubmit={handleSubmit((v) => {
+          if (locked) return;
+          save.mutate(v);
+        })}
       >
         <ProfilePhotoField
           photoUrl={profile.data?.profilePhotoUrl}
           name={`${profile.data?.firstName ?? ""} ${profile.data?.lastName ?? ""}`}
           uploading={photo.isPending}
-          onUpload={(file) => photo.mutate(file)}
+          disabled={locked}
+          onUpload={(file) => {
+            if (!locked) photo.mutate(file);
+          }}
         />
 
         {profile.data?.ratingCount ? (
@@ -190,12 +201,13 @@ export default function CaregiverProfilePage() {
                 <button
                   key={q}
                   type="button"
+                  disabled={locked}
                   onClick={() => toggleQual(q)}
                   className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${
                     on
                       ? "border-brand bg-brand-soft text-brand-deep"
                       : "border-line bg-paper text-ink-muted hover:border-brand"
-                  }`}
+                  } disabled:cursor-not-allowed disabled:opacity-70`}
                 >
                   {q}
                 </button>
@@ -206,33 +218,61 @@ export default function CaregiverProfilePage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Min $/hr">
-            <Input type="number" step="0.01" {...register("hourlyRateMin")} />
+            <Input
+              type="number"
+              step="0.01"
+              disabled={locked}
+              {...register("hourlyRateMin")}
+            />
           </Field>
           <Field label="Max $/hr">
-            <Input type="number" step="0.01" {...register("hourlyRateMax")} />
+            <Input
+              type="number"
+              step="0.01"
+              disabled={locked}
+              {...register("hourlyRateMax")}
+            />
           </Field>
           <Field label="Radius (mi)">
-            <Input type="number" {...register("serviceRadiusMiles")} />
+            <Input
+              type="number"
+              disabled={locked}
+              {...register("serviceRadiusMiles")}
+            />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Home latitude">
-            <Input type="number" step="any" {...register("homeLat")} />
+            <Input
+              type="number"
+              step="any"
+              disabled={locked}
+              {...register("homeLat")}
+            />
           </Field>
           <Field label="Home longitude">
-            <Input type="number" step="any" {...register("homeLng")} />
+            <Input
+              type="number"
+              step="any"
+              disabled={locked}
+              {...register("homeLng")}
+            />
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
           Home coordinates + radius define your jurisdiction for open-shift matching.
         </p>
 
-        <Button type="submit" disabled={save.isPending}>
-          {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
-          {save.isPending ? "Saving…" : "Save profile"}
-        </Button>
+        {!locked ? (
+          <Button type="submit" disabled={save.isPending}>
+            {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
+            {save.isPending ? "Saving…" : "Save profile"}
+          </Button>
+        ) : null}
       </form>
+
+      <ChangePasswordSection />
 
       <section className="space-y-3 rounded-lg border border-line bg-paper p-5">
         <h2 className="font-display text-xl text-ink">Published reviews</h2>

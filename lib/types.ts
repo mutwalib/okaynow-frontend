@@ -24,6 +24,7 @@ export const SHIFT_SCHEDULE_TYPE_LABEL: Record<ShiftScheduleType, string> = {
 
 export type UserStatus =
   | "PENDING_VERIFICATION"
+  | "PENDING_REVIEW"
   | "ACTIVE"
   | "SUSPENDED"
   | "DEACTIVATED";
@@ -71,6 +72,7 @@ export interface AuthUser {
   id: string;
   email: string;
   role: UserRole;
+  status?: UserStatus;
 }
 
 export interface AuthTokens {
@@ -86,6 +88,19 @@ export interface UserResponse {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
+}
+
+export function homePathForUser(user: {
+  role: UserRole;
+  status?: UserStatus | null;
+}): string {
+  if (
+    (user.role === "CAREGIVER" || user.role === "CLIENT") &&
+    user.status === "PENDING_REVIEW"
+  ) {
+    return "/pending-review";
+  }
+  return ROLE_HOME[user.role];
 }
 
 export interface CaregiverProfile {

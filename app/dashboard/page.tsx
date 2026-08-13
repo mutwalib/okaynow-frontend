@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { ROLE_HOME } from "@/lib/types";
+import { homePathForUser } from "@/lib/types";
 
 export default function DashboardRedirectPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -15,7 +15,7 @@ export default function DashboardRedirectPage() {
       router.replace("/login");
       return;
     }
-    router.replace(ROLE_HOME[user.role]);
+    router.replace(homePathForUser(user));
   }, [isAuthenticated, isLoading, router, user]);
 
   return (

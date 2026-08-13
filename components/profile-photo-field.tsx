@@ -9,11 +9,13 @@ export function ProfilePhotoField({
   photoUrl,
   name,
   uploading,
+  disabled,
   onUpload,
 }: {
   photoUrl: string | null | undefined;
   name: string;
   uploading?: boolean;
+  disabled?: boolean;
   onUpload: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,17 +54,21 @@ export function ProfilePhotoField({
             e.target.value = "";
           }}
         />
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="mt-2"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          <Camera className="h-3.5 w-3.5" aria-hidden />
-          {uploading ? "Uploading…" : src ? "Change photo" : "Upload photo"}
-        </Button>
+        {!disabled ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="mt-2"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Camera className="h-3.5 w-3.5" aria-hidden />
+            {uploading ? "Uploading…" : src ? "Change photo" : "Upload photo"}
+          </Button>
+        ) : (
+          <p className="mt-2 text-xs text-ink-muted">Photo locked after verification</p>
+        )}
       </div>
     </div>
   );

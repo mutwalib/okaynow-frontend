@@ -8,15 +8,18 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import type { AuthUser, UserRole } from "./types";
-import { ROLE_HOME } from "./types";
+import type { AuthUser, UserRole, UserStatus } from "./types";
+import { homePathForUser } from "./types";
 import {
   clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
   getStoredAuthUser,
   setAuthSession,
 } from "./auth-cookie";
 import {
   ApiError,
+  getMe,
   loginUser,
   registerUser,
   verifyEmail,
@@ -32,6 +35,8 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<RegisterResult>;
   completeEmailVerification: (email: string, code: string) => Promise<AuthUser>;
+  refreshAccountStatus: () => Promise<AuthUser | null>;
+  setAccountStatus: (status: UserStatus) => void;
   logout: () => void;
   goHome: (role?: UserRole) => void;
 }
@@ -42,8 +47,14 @@ function toUser(data: {
   userId: string;
   email: string;
   role: UserRole;
+  status?: UserStatus | null;
 }): AuthUser {
-  return { id: data.userId, email: data.email, role: data.role };
+  return {
+    id: data.userId,
+    email: data.email,
+    role: data.role,
+    status: data.status ?? undefined,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -51,16 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setUser(getStoredAuthUser());
-    setIsLoading(false);
-  }, []);
-
   const persist = useCallback(
     (data: {
       userId: string;
       email: string;
       role: UserRole;
+      status?: UserStatus | null;
       accessToken: string;
       refreshToken: string;
       expiresInSeconds: number;
@@ -76,6 +83,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [],
   );
+
+  const refreshAccountStatus = useCallback(async () => {
+    if (!getAccessToken()) return null;
+    try {
+      const me = await getMe();
+      const next: AuthUser = {
+        id: me.id,
+        email: me.email,
+        role: me.role,
+        status: me.status,
+      };
+      const access = getAccessToken();
+      const refresh = getRefreshToken();
+      if (access && refresh) {
+        setAuthSession(next, {
+          accessToken: access,
+          refreshToken: refresh,
+          expiresInSeconds: 900,
+        });
+      }
+      setUser(next);
+      return next;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const stored = getStoredAuthUser();
+    setUser(stored);
+    setIsLoading(false);
+    if (stored && getAccessToken()) {
+      void refreshAccountStatus();
+    }
+  }, [refreshAccountStatus]);
+
+  const setAccountStatus = useCallback((status: UserStatus) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, status };
+      const access = getAccessToken();
+      const refresh = getRefreshToken();
+      if (access && refresh) {
+        setAuthSession(next, {
+          accessToken: access,
+          refreshToken: refresh,
+          expiresInSeconds: 900,
+        });
+      }
+      return next;
+    });
+  }, []);
 
   const login = useCallback(
     async (payload: LoginPayload) => {
@@ -103,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userId: data.userId,
         email: data.email,
         role: data.role,
+        status: data.status,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         expiresInSeconds: data.expiresInSeconds ?? 900,
@@ -118,7 +178,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeEmailVerification = useCallback(
     async (email: string, code: string) => {
       const data = await verifyEmail(email, code);
-      return persist(data);
+      return persist({
+        ...data,
+        status: data.status,
+      });
     },
     [persist],
   );
@@ -131,14 +194,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const goHome = useCallback(
     (role?: UserRole) => {
-      const r = role ?? user?.role;
-      if (!r) {
+      if (user) {
+        router.push(homePathForUser(role ? { ...user, role } : user));
+        return;
+      }
+      if (!role) {
         router.push("/login");
         return;
       }
-      router.push(ROLE_HOME[r]);
+      router.push(homePathForUser({ role }));
     },
-    [router, user?.role],
+    [router, user],
   );
 
   return (
@@ -150,6 +216,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         completeEmailVerification,
+        refreshAccountStatus,
+        setAccountStatus,
         logout,
         goHome,
       }}
