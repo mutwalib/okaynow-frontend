@@ -359,6 +359,8 @@ export interface OnboardingRequestItem {
 export interface OnboardingStatus {
   userStatus: UserStatus;
   pendingReview: boolean;
+  applicationComplete: boolean;
+  applicationMissing: string[];
   message: string;
   requests: OnboardingRequestItem[];
 }
@@ -400,6 +402,10 @@ export function updateMyCaregiverProfile(
     hourlyRateMin: number | null;
     hourlyRateMax: number | null;
     serviceRadiusMiles: number | null;
+    homeAddressLine: string | null;
+    homeCity: string | null;
+    homeState: string | null;
+    homeZip: string | null;
     homeLat: number | null;
     homeLng: number | null;
   }>,

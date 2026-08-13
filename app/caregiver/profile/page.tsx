@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyCaregiverProfile, updateMyCaregiverProfile, uploadCaregiverPhoto, getMyPublishedReviews } from "@/lib/api";
 import { QUALIFICATIONS, type Qualification } from "@/lib/types";
+import { DEFAULT_STATE, maZipMessage } from "@/lib/service-region";
 import { useToast } from "@/lib/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { Save, Star } from "lucide-react";
@@ -21,8 +22,9 @@ type FormValues = {
   hourlyRateMin: number | "";
   hourlyRateMax: number | "";
   serviceRadiusMiles: number | "";
-  homeLat: number | "";
-  homeLng: number | "";
+  homeAddressLine: string;
+  homeCity: string;
+  homeZip: string;
   qualifications: Qualification[];
 };
 
@@ -47,8 +49,9 @@ export default function CaregiverProfilePage() {
       hourlyRateMin: "",
       hourlyRateMax: "",
       serviceRadiusMiles: "",
-      homeLat: "",
-      homeLng: "",
+      homeAddressLine: "",
+      homeCity: "",
+      homeZip: "",
       qualifications: [],
     },
   });
@@ -63,15 +66,19 @@ export default function CaregiverProfilePage() {
       hourlyRateMin: profile.data.hourlyRateMin ?? "",
       hourlyRateMax: profile.data.hourlyRateMax ?? "",
       serviceRadiusMiles: profile.data.serviceRadiusMiles ?? "",
-      homeLat: profile.data.homeLat ?? "",
-      homeLng: profile.data.homeLng ?? "",
+      homeAddressLine: profile.data.homeAddressLine ?? "",
+      homeCity: profile.data.homeCity ?? "",
+      homeZip: profile.data.homeZip ?? "",
       qualifications: profile.data.qualifications ?? [],
     });
   }, [profile.data, reset]);
 
   const save = useMutation({
-    mutationFn: (values: FormValues) =>
-      updateMyCaregiverProfile({
+    mutationFn: (values: FormValues) => {
+      if (values.homeZip && maZipMessage(values.homeZip) !== true) {
+        return Promise.reject(new Error(String(maZipMessage(values.homeZip))));
+      }
+      return updateMyCaregiverProfile({
         firstName: profile.data!.firstName,
         lastName: profile.data!.lastName,
         qualifications: values.qualifications,
@@ -83,9 +90,12 @@ export default function CaregiverProfilePage() {
           values.serviceRadiusMiles === ""
             ? null
             : Number(values.serviceRadiusMiles),
-        homeLat: values.homeLat === "" ? null : Number(values.homeLat),
-        homeLng: values.homeLng === "" ? null : Number(values.homeLng),
-      }),
+        homeAddressLine: values.homeAddressLine || null,
+        homeCity: values.homeCity || null,
+        homeState: DEFAULT_STATE,
+        homeZip: values.homeZip || null,
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["caregiver-me"] });
       showToast("Profile saved", "success");
@@ -242,26 +252,20 @@ export default function CaregiverProfilePage() {
           </Field>
         </div>
 
+        <Field label="Street address">
+          <Input disabled={locked} {...register("homeAddressLine")} />
+        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Home latitude">
-            <Input
-              type="number"
-              step="any"
-              disabled={locked}
-              {...register("homeLat")}
-            />
+          <Field label="City">
+            <Input disabled={locked} {...register("homeCity")} />
           </Field>
-          <Field label="Home longitude">
-            <Input
-              type="number"
-              step="any"
-              disabled={locked}
-              {...register("homeLng")}
-            />
+          <Field label="ZIP">
+            <Input disabled={locked} {...register("homeZip")} />
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
-          Home coordinates + radius define your jurisdiction for open-shift matching.
+          Home address is located automatically for open-shift distance matching
+          (Massachusetts).
         </p>
 
         {!locked ? (
