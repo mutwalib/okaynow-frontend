@@ -46,11 +46,13 @@ function RequestCard({
   const [text, setText] = useState(item.responseText ?? "");
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const open = item.status === "OPEN" || item.status === "SUBMITTED";
+  const canEdit = item.status === "OPEN";
   const remotePreview = mediaUrl(item.fileUrl);
-  const previewSrc = localPreview ?? (isImageUrl(item.fileUrl) || item.fieldType === "PROFILE_PHOTO"
-    ? remotePreview
-    : null);
+  const previewSrc =
+    localPreview ??
+    (isImageUrl(item.fileUrl) || item.fieldType === "PROFILE_PHOTO"
+      ? remotePreview
+      : null);
 
   useEffect(() => {
     return () => {
@@ -90,11 +92,49 @@ function RequestCard({
         </span>
       </div>
 
-      {!open ? (
-        <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-ink-muted">
-          <CheckCircle2 className="h-4 w-4 text-brand" aria-hidden />
-          {item.status === "ACCEPTED" ? "Accepted by the agency" : "Closed"}
-        </p>
+      {!canEdit ? (
+        <div className="mt-4 space-y-3">
+          <p className="inline-flex items-center gap-1.5 text-sm text-ink-muted">
+            <CheckCircle2 className="h-4 w-4 text-brand" aria-hidden />
+            {item.status === "ACCEPTED"
+              ? "Accepted by the agency"
+              : item.status === "SUBMITTED"
+                ? "Submitted — locked until the agency asks you to resubmit"
+                : "Closed"}
+          </p>
+          {item.fieldType === "TEXT" && item.responseText ? (
+            <p className="whitespace-pre-wrap rounded-md border border-line bg-surface/50 p-3 text-sm text-ink">
+              {item.responseText}
+            </p>
+          ) : null}
+          {previewSrc ? (
+            <div className="overflow-hidden rounded-lg border border-line bg-paper">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc}
+                alt={
+                  item.fieldType === "PROFILE_PHOTO"
+                    ? "Submitted profile photo"
+                    : "Submitted file"
+                }
+                className={
+                  item.fieldType === "PROFILE_PHOTO"
+                    ? "mx-auto h-40 w-40 object-cover"
+                    : "max-h-56 w-full object-contain"
+                }
+              />
+            </div>
+          ) : remotePreview && item.fileUrl ? (
+            <a
+              href={remotePreview}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-brand-deep underline"
+            >
+              View submitted file
+            </a>
+          ) : null}
+        </div>
       ) : item.fieldType === "TEXT" ? (
         <form
           className="mt-4 space-y-3"
@@ -122,7 +162,11 @@ function RequestCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={previewSrc}
-                alt={item.fieldType === "PROFILE_PHOTO" ? "Profile photo preview" : "Upload preview"}
+                alt={
+                  item.fieldType === "PROFILE_PHOTO"
+                    ? "Profile photo preview"
+                    : "Upload preview"
+                }
                 className={
                   item.fieldType === "PROFILE_PHOTO"
                     ? "mx-auto h-40 w-40 object-cover"
@@ -130,15 +174,6 @@ function RequestCard({
                 }
               />
             </div>
-          ) : remotePreview && item.fileUrl ? (
-            <a
-              href={remotePreview}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm font-medium text-brand-deep underline"
-            >
-              View uploaded file
-            </a>
           ) : null}
           {fileName ? (
             <p className="text-sm text-ink-muted">{fileName}</p>
@@ -175,12 +210,100 @@ function RequestCard({
             <Upload className="h-3.5 w-3.5" aria-hidden />
             {fileMut.isPending
               ? "Uploading…"
-              : item.status === "SUBMITTED"
-                ? "Replace file"
+              : item.fileUrl
+                ? "Upload a replacement"
                 : "Choose a file to upload"}
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function CaregiverApplicationSummary() {
+  const profile = useQuery({
+    queryKey: ["caregiver-me"],
+    queryFn: getMyCaregiverProfile,
+  });
+  if (!profile.data) return null;
+  const p = profile.data;
+  const photo = mediaUrl(p.profilePhotoUrl);
+  return (
+    <div className="rounded-lg border border-line bg-paper p-5">
+      <h2 className="font-display text-xl text-ink">Your submitted application</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        Locked after submission. You can view it here; edits reopen only if the
+        agency asks.
+      </p>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photo}
+          alt="Profile photo"
+          className="mt-4 h-24 w-24 rounded-full object-cover"
+        />
+      ) : null}
+      <dl className="mt-4 space-y-2 text-sm">
+        <div>
+          <dt className="text-ink-muted">Qualifications</dt>
+          <dd className="text-ink">
+            {(p.qualifications ?? []).join(", ") || "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Pay range</dt>
+          <dd className="text-ink">
+            {p.hourlyRateMin != null || p.hourlyRateMax != null
+              ? `$${p.hourlyRateMin ?? "—"} – $${p.hourlyRateMax ?? "—"} /hr`
+              : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Service radius</dt>
+          <dd className="text-ink">
+            {p.serviceRadiusMiles != null ? `${p.serviceRadiusMiles} mi` : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Home address</dt>
+          <dd className="text-ink">
+            {[p.homeAddressLine, p.homeCity, p.homeState, p.homeZip]
+              .filter(Boolean)
+              .join(", ") || "—"}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+function ClientApplicationSummary() {
+  const profile = useQuery({
+    queryKey: ["client-me"],
+    queryFn: getMyClientProfile,
+  });
+  if (!profile.data) return null;
+  const p = profile.data;
+  return (
+    <div className="rounded-lg border border-line bg-paper p-5">
+      <h2 className="font-display text-xl text-ink">Your submitted application</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        Locked after submission. You can view it here; edits reopen only if the
+        agency asks.
+      </p>
+      <dl className="mt-4 space-y-2 text-sm">
+        <div>
+          <dt className="text-ink-muted">Care address</dt>
+          <dd className="text-ink">
+            {[p.addressLine, p.city, p.state, p.zip].filter(Boolean).join(", ") ||
+              "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Care needs</dt>
+          <dd className="whitespace-pre-wrap text-ink">{p.careNeeds || "—"}</dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -485,10 +608,14 @@ export default function PendingReviewPage() {
 
   const applicationSubmitted = status.data?.applicationSubmitted === true;
   const applicationReady = status.data?.applicationReady === true;
-  const openOrSubmitted =
+  const trackedRequests =
     status.data?.requests.filter(
-      (r) => r.status === "OPEN" || r.status === "SUBMITTED",
+      (r) =>
+        r.status === "OPEN" ||
+        r.status === "SUBMITTED" ||
+        r.status === "ACCEPTED",
     ) ?? [];
+  const openCount = trackedRequests.filter((r) => r.status === "OPEN").length;
 
   return (
     <div className="min-h-screen atmosphere">
@@ -521,27 +648,35 @@ export default function PendingReviewPage() {
             <ClientApplicationForm onSaved={refreshOnboarding} />
           ) : null}
 
+          {applicationSubmitted && user.role === "CAREGIVER" ? (
+            <CaregiverApplicationSummary />
+          ) : null}
+          {applicationSubmitted && user.role === "CLIENT" ? (
+            <ClientApplicationSummary />
+          ) : null}
+
           {status.isLoading ? (
             <p className="text-sm text-ink-muted">Loading requests…</p>
           ) : null}
 
-          {!applicationSubmitted
-            ? openOrSubmitted.map((item) => (
-                <RequestCard
-                  key={item.id}
-                  item={item}
-                  onDone={refreshOnboarding}
-                />
-              ))
-            : openOrSubmitted
-                .filter((r) => r.status === "OPEN")
-                .map((item) => (
+          {trackedRequests.length > 0 ? (
+            <div>
+              <h2 className="mb-3 font-display text-xl text-ink">
+                {applicationSubmitted
+                  ? "What you submitted"
+                  : "Required items"}
+              </h2>
+              <div className="space-y-4">
+                {trackedRequests.map((item) => (
                   <RequestCard
                     key={item.id}
                     item={item}
                     onDone={refreshOnboarding}
                   />
                 ))}
+              </div>
+            </div>
+          ) : null}
 
           {!applicationSubmitted && applicationReady ? (
             <div className="rounded-lg border border-brand/30 bg-brand-soft/40 p-5">
@@ -550,8 +685,8 @@ export default function PendingReviewPage() {
               </h2>
               <p className="mt-2 text-sm text-ink-muted">
                 You&apos;ve entered everything we need. Confirm to send your
-                application for agency review. You&apos;ll stay here until you
-                are verified.
+                application for agency review. After you submit, these details
+                stay locked unless the agency asks you to resubmit.
               </p>
               <Button
                 type="button"
@@ -574,9 +709,7 @@ export default function PendingReviewPage() {
             </div>
           ) : null}
 
-          {applicationSubmitted &&
-          openOrSubmitted.filter((r) => r.status === "OPEN").length === 0 &&
-          !status.isLoading ? (
+          {applicationSubmitted && openCount === 0 && !status.isLoading ? (
             <div className="rounded-lg border border-dashed border-line bg-paper/70 p-5 text-sm text-ink-muted">
               No additional information is requested right now. We&apos;ll email
               you when your account is approved.
