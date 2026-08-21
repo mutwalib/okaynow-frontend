@@ -31,6 +31,7 @@ type FormValues = {
   homeCity: string;
   homeZip: string;
   qualifications: Qualification[];
+  otherQualificationDetail: string;
 };
 
 export default function CaregiverProfilePage() {
@@ -59,6 +60,7 @@ export default function CaregiverProfilePage() {
       homeCity: "",
       homeZip: "",
       qualifications: [],
+      otherQualificationDetail: "",
     },
   });
 
@@ -76,6 +78,7 @@ export default function CaregiverProfilePage() {
       homeCity: profile.data.homeCity ?? "",
       homeZip: profile.data.homeZip ?? "",
       qualifications: profile.data.qualifications ?? [],
+      otherQualificationDetail: profile.data.otherQualificationDetail ?? "",
     });
   }, [profile.data, reset]);
 
@@ -87,10 +90,21 @@ export default function CaregiverProfilePage() {
       if (!values.qualifications.length) {
         return Promise.reject(new Error("Select at least one qualification."));
       }
+      if (
+        values.qualifications.includes("OTHER") &&
+        !values.otherQualificationDetail.trim()
+      ) {
+        return Promise.reject(
+          new Error("Specify what your Other qualification is."),
+        );
+      }
       return updateMyCaregiverProfile({
         firstName: profile.data!.firstName,
         lastName: profile.data!.lastName,
         qualifications: values.qualifications,
+        otherQualificationDetail: values.qualifications.includes("OTHER")
+          ? values.otherQualificationDetail.trim()
+          : null,
         hourlyRateMin:
           values.hourlyRateMin === "" ? null : Number(values.hourlyRateMin),
         hourlyRateMax:
@@ -145,7 +159,10 @@ export default function CaregiverProfilePage() {
       (values.homeAddressLine || "") !== (profile.data.homeAddressLine ?? "") ||
       (values.homeCity || "") !== (profile.data.homeCity ?? "") ||
       (values.homeZip || "") !== (profile.data.homeZip ?? "");
-    return qualsChanged || addressChanged;
+    const otherDetailChanged =
+      (values.otherQualificationDetail || "").trim() !==
+      (profile.data.otherQualificationDetail ?? "");
+    return qualsChanged || addressChanged || otherDetailChanged;
   }
 
   function toggleQual(q: Qualification) {
@@ -153,6 +170,9 @@ export default function CaregiverProfilePage() {
       ? selected.filter((x) => x !== q)
       : [...selected, q];
     setValue("qualifications", next, { shouldDirty: true });
+    if (!next.includes("OTHER")) {
+      setValue("otherQualificationDetail", "", { shouldDirty: true });
+    }
   }
 
   if (profile.isLoading) return <LoadingBlock />;
@@ -273,6 +293,17 @@ export default function CaregiverProfilePage() {
               );
             })}
           </div>
+          {selected.includes("OTHER") ? (
+            <div className="mt-3">
+              <Field label="Specify Other qualification">
+                <Input
+                  {...register("otherQualificationDetail")}
+                  placeholder="e.g. Medication technician, companion care"
+                  required
+                />
+              </Field>
+            </div>
+          ) : null}
           {locked ? (
             <p className="mt-2 text-xs text-ink-muted">
               You can add or remove qualifications here. Saving qualification or
