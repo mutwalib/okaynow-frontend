@@ -424,6 +424,13 @@ export function updateMyCaregiverProfile(
   });
 }
 
+export function addCaregiverQualifications(qualifications: Qualification[]) {
+  return request<CaregiverProfile>("/api/caregivers/me/qualifications", {
+    method: "POST",
+    body: JSON.stringify({ qualifications }),
+  });
+}
+
 export function uploadCaregiverPhoto(file: File) {
   const body = new FormData();
   body.append("file", file);

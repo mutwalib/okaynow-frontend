@@ -4,7 +4,11 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyCaregiverProfile, updateMyCaregiverProfile, uploadCaregiverPhoto, getMyPublishedReviews } from "@/lib/api";
-import { QUALIFICATIONS, type Qualification } from "@/lib/types";
+import {
+  QUALIFICATIONS,
+  QUALIFICATION_LABELS,
+  type Qualification,
+} from "@/lib/types";
 import { DEFAULT_STATE, maZipMessage } from "@/lib/service-region";
 import { useToast } from "@/lib/toast-context";
 import { useAuth } from "@/lib/auth-context";
@@ -15,6 +19,7 @@ import { LoadingBlock } from "@/components/shift-card";
 import { ProfilePhotoField } from "@/components/profile-photo-field";
 import { DeleteAccountSection } from "@/components/delete-account-section";
 import { ChangePasswordSection } from "@/components/change-password-section";
+import { useRouter } from "next/navigation";
 
 type FormValues = {
   firstName: string;
@@ -30,7 +35,8 @@ type FormValues = {
 
 export default function CaregiverProfilePage() {
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshAccountStatus } = useAuth();
+  const router = useRouter();
   const locked = user?.status === "ACTIVE";
   const qc = useQueryClient();
   const profile = useQuery({
@@ -78,6 +84,9 @@ export default function CaregiverProfilePage() {
       if (values.homeZip && maZipMessage(values.homeZip) !== true) {
         return Promise.reject(new Error(String(maZipMessage(values.homeZip))));
       }
+      if (!values.qualifications.length) {
+        return Promise.reject(new Error("Select at least one qualification."));
+      }
       return updateMyCaregiverProfile({
         firstName: profile.data!.firstName,
         lastName: profile.data!.lastName,
@@ -96,12 +105,24 @@ export default function CaregiverProfilePage() {
         homeZip: values.homeZip || null,
       });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+      if (locked) {
+        const next = await refreshAccountStatus();
+        if (next?.status === "PENDING_REVIEW") {
+          showToast(
+            "Profile updated. Your account is back under agency review.",
+            "success",
+          );
+          router.replace("/pending-review");
+          return;
+        }
+      }
       showToast("Profile saved", "success");
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
+
 
   const photo = useMutation({
     mutationFn: uploadCaregiverPhoto,
@@ -112,8 +133,22 @@ export default function CaregiverProfilePage() {
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
+
+  function needsAgencyReverification(values: FormValues) {
+    if (!profile.data) return false;
+    const currentQuals = [...(profile.data.qualifications ?? [])].sort();
+    const nextQuals = [...values.qualifications].sort();
+    const qualsChanged =
+      currentQuals.length !== nextQuals.length ||
+      currentQuals.some((q, i) => q !== nextQuals[i]);
+    const addressChanged =
+      (values.homeAddressLine || "") !== (profile.data.homeAddressLine ?? "") ||
+      (values.homeCity || "") !== (profile.data.homeCity ?? "") ||
+      (values.homeZip || "") !== (profile.data.homeZip ?? "");
+    return qualsChanged || addressChanged;
+  }
+
   function toggleQual(q: Qualification) {
-    if (locked) return;
     const next = selected.includes(q)
       ? selected.filter((x) => x !== q)
       : [...selected, q];
@@ -136,7 +171,7 @@ export default function CaregiverProfilePage() {
         <h1 className="font-display text-3xl text-ink">Your profile</h1>
         <p className="mt-1 text-sm text-ink-muted">
           {locked
-            ? "Your profile is locked after agency verification. You can still change your password below."
+            ? "You can update your details below. Changing qualifications or home address sends your account back for agency verification. Pay rate and service radius do not."
             : "Set your qualifications, pay range, and service area before the agency finishes review."}
         </p>
       </div>
@@ -144,7 +179,15 @@ export default function CaregiverProfilePage() {
       <form
         className="space-y-5 rounded-lg border border-line bg-paper p-5"
         onSubmit={handleSubmit((v) => {
-          if (locked) return;
+          if (locked && needsAgencyReverification(v)) {
+            if (
+              !window.confirm(
+                "Saving changes to qualifications or home address sends your account back for agency verification. You will not have full access until approved again. Continue?",
+              )
+            ) {
+              return;
+            }
+          }
           save.mutate(v);
         })}
       >
@@ -198,9 +241,15 @@ export default function CaregiverProfilePage() {
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
-          Names are set at registration and cannot be changed. Contact the agency
-          if a correction is required.
+          Names are set at registration and cannot be changed here. Contact the
+          agency if a correction is required — staff can update it for you.
         </p>
+        {locked ? (
+          <p className="text-xs text-ink-muted">
+            Changing qualifications or home address requires agency
+            re-verification before you can continue. Pay rate and radius do not.
+          </p>
+        ) : null}
 
         <div>
           <p className="mb-2 text-sm font-medium text-ink">Qualifications</p>
@@ -211,7 +260,7 @@ export default function CaregiverProfilePage() {
                 <button
                   key={q}
                   type="button"
-                  disabled={locked}
+                  disabled={save.isPending}
                   onClick={() => toggleQual(q)}
                   className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${
                     on
@@ -219,11 +268,17 @@ export default function CaregiverProfilePage() {
                       : "border-line bg-paper text-ink-muted hover:border-brand"
                   } disabled:cursor-not-allowed disabled:opacity-70`}
                 >
-                  {q}
+                  {QUALIFICATION_LABELS[q]}
                 </button>
               );
             })}
           </div>
+          {locked ? (
+            <p className="mt-2 text-xs text-ink-muted">
+              You can add or remove qualifications here. Saving qualification or
+              address changes sends your account back for agency review.
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -231,7 +286,6 @@ export default function CaregiverProfilePage() {
             <Input
               type="number"
               step="0.01"
-              disabled={locked}
               {...register("hourlyRateMin")}
             />
           </Field>
@@ -239,28 +293,26 @@ export default function CaregiverProfilePage() {
             <Input
               type="number"
               step="0.01"
-              disabled={locked}
               {...register("hourlyRateMax")}
             />
           </Field>
           <Field label="Radius (mi)">
             <Input
               type="number"
-              disabled={locked}
               {...register("serviceRadiusMiles")}
             />
           </Field>
         </div>
 
         <Field label="Street address">
-          <Input disabled={locked} {...register("homeAddressLine")} />
+          <Input {...register("homeAddressLine")} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="City">
-            <Input disabled={locked} {...register("homeCity")} />
+            <Input {...register("homeCity")} />
           </Field>
           <Field label="ZIP">
-            <Input disabled={locked} {...register("homeZip")} />
+            <Input {...register("homeZip")} />
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
@@ -268,12 +320,14 @@ export default function CaregiverProfilePage() {
           (Massachusetts).
         </p>
 
-        {!locked ? (
-          <Button type="submit" disabled={save.isPending}>
-            {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
-            {save.isPending ? "Saving…" : "Save profile"}
-          </Button>
-        ) : null}
+        <Button type="submit" disabled={save.isPending}>
+          {!save.isPending ? <Save className="h-4 w-4" aria-hidden /> : null}
+          {save.isPending
+            ? "Saving…"
+            : locked
+              ? "Save profile"
+              : "Save profile"}
+        </Button>
       </form>
 
       <ChangePasswordSection />
