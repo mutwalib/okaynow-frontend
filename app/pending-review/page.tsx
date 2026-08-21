@@ -8,6 +8,7 @@ import {
   getMyClientProfile,
   getOnboardingStatus,
   mediaUrl,
+  addCaregiverQualifications,
   submitApplication,
   submitOnboardingFile,
   submitOnboardingText,
@@ -18,6 +19,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import {
   QUALIFICATIONS,
+  QUALIFICATION_LABELS,
   homePathForUser,
   type CaregiverProfile,
   type ClientProfile,
@@ -221,19 +223,36 @@ function RequestCard({
 }
 
 function CaregiverApplicationSummary() {
+  const { showToast } = useToast();
+  const { refreshAccountStatus } = useAuth();
+  const qc = useQueryClient();
   const profile = useQuery({
     queryKey: ["caregiver-me"],
     queryFn: getMyCaregiverProfile,
   });
+  const addQual = useMutation({
+    mutationFn: (q: Qualification) => addCaregiverQualifications([q]),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+      await qc.invalidateQueries({ queryKey: ["onboarding-me"] });
+      await refreshAccountStatus();
+      showToast(
+        "Qualification added. Upload the new proof request below, then resubmit your application.",
+        "success",
+      );
+    },
+    onError: (e: Error) => showToast(e.message, "error"),
+  });
   if (!profile.data) return null;
   const p = profile.data;
   const photo = mediaUrl(p.profilePhotoUrl);
+  const selected = new Set(p.qualifications ?? []);
   return (
     <div className="rounded-lg border border-line bg-paper p-5">
       <h2 className="font-display text-xl text-ink">Your submitted application</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        Locked after submission. You can view it here; edits reopen only if the
-        agency asks.
+        Locked after submission. You can still add a new qualification (that
+        reopens review).
       </p>
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -247,7 +266,9 @@ function CaregiverApplicationSummary() {
         <div>
           <dt className="text-ink-muted">Qualifications</dt>
           <dd className="text-ink">
-            {(p.qualifications ?? []).join(", ") || "—"}
+            {(p.qualifications ?? [])
+              .map((q) => QUALIFICATION_LABELS[q] ?? q)
+              .join(", ") || "—"}
           </dd>
         </div>
         <div>
@@ -273,6 +294,31 @@ function CaregiverApplicationSummary() {
           </dd>
         </div>
       </dl>
+      <div className="mt-4">
+        <p className="mb-2 text-sm font-medium text-ink">Add a qualification</p>
+        <div className="flex flex-wrap gap-2">
+          {QUALIFICATIONS.filter((q) => !selected.has(q)).map((q) => (
+            <button
+              key={q}
+              type="button"
+              disabled={addQual.isPending}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    `Add ${QUALIFICATION_LABELS[q]}? This reopens agency verification.`,
+                  )
+                ) {
+                  return;
+                }
+                addQual.mutate(q);
+              }}
+              className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:border-brand"
+            >
+              {QUALIFICATION_LABELS[q]}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -406,7 +452,7 @@ function CaregiverApplicationFields({
                   : "border-line text-ink-muted"
               }`}
             >
-              {q}
+              {QUALIFICATION_LABELS[q]}
             </button>
           );
         })}
