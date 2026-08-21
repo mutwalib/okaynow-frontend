@@ -129,6 +129,7 @@ export interface CaregiverProfile {
   firstName: string;
   lastName: string;
   qualifications: Qualification[];
+  otherQualificationDetail: string | null;
   hourlyRateMin: number | null;
   hourlyRateMax: number | null;
   serviceRadiusMiles: number | null;

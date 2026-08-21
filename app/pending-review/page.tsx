@@ -231,7 +231,13 @@ function CaregiverApplicationSummary() {
     queryFn: getMyCaregiverProfile,
   });
   const addQual = useMutation({
-    mutationFn: (q: Qualification) => addCaregiverQualifications([q]),
+    mutationFn: ({
+      q,
+      otherDetail,
+    }: {
+      q: Qualification;
+      otherDetail?: string;
+    }) => addCaregiverQualifications([q], otherDetail),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["caregiver-me"] });
       await qc.invalidateQueries({ queryKey: ["onboarding-me"] });
@@ -267,7 +273,11 @@ function CaregiverApplicationSummary() {
           <dt className="text-ink-muted">Qualifications</dt>
           <dd className="text-ink">
             {(p.qualifications ?? [])
-              .map((q) => QUALIFICATION_LABELS[q] ?? q)
+              .map((q) =>
+                q === "OTHER" && p.otherQualificationDetail
+                  ? `Other (${p.otherQualificationDetail})`
+                  : (QUALIFICATION_LABELS[q] ?? q),
+              )
               .join(", ") || "—"}
           </dd>
         </div>
@@ -310,7 +320,21 @@ function CaregiverApplicationSummary() {
                 ) {
                   return;
                 }
-                addQual.mutate(q);
+                let otherDetail: string | undefined;
+                if (q === "OTHER") {
+                  const typed = window.prompt(
+                    "Specify what your Other qualification is:",
+                  );
+                  if (!typed?.trim()) {
+                    showToast(
+                      "Please specify the Other qualification.",
+                      "error",
+                    );
+                    return;
+                  }
+                  otherDetail = typed.trim();
+                }
+                addQual.mutate({ q, otherDetail });
               }}
               className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:border-brand"
             >
@@ -380,6 +404,9 @@ function CaregiverApplicationFields({
   const [quals, setQuals] = useState<Qualification[]>(
     () => profile.qualifications ?? [],
   );
+  const [otherDetail, setOtherDetail] = useState(
+    () => profile.otherQualificationDetail ?? "",
+  );
   const [rateMin, setRateMin] = useState(() =>
     profile.hourlyRateMin != null ? String(profile.hourlyRateMin) : "",
   );
@@ -400,10 +427,16 @@ function CaregiverApplicationFields({
       if (zip && maZipMessage(zip) !== true) {
         throw new Error(String(maZipMessage(zip)));
       }
+      if (quals.includes("OTHER") && !otherDetail.trim()) {
+        throw new Error("Specify what your Other qualification is.");
+      }
       return updateMyCaregiverProfile({
         firstName: profile.firstName,
         lastName: profile.lastName,
         qualifications: quals,
+        otherQualificationDetail: quals.includes("OTHER")
+          ? otherDetail.trim()
+          : null,
         hourlyRateMin: rateMin === "" ? null : Number(rateMin),
         hourlyRateMax: rateMax === "" ? null : Number(rateMax),
         serviceRadiusMiles: radius === "" ? null : Number(radius),
@@ -442,9 +475,11 @@ function CaregiverApplicationFields({
               key={q}
               type="button"
               onClick={() =>
-                setQuals((prev) =>
-                  on ? prev.filter((x) => x !== q) : [...prev, q],
-                )
+                setQuals((prev) => {
+                  const next = on ? prev.filter((x) => x !== q) : [...prev, q];
+                  if (!next.includes("OTHER")) setOtherDetail("");
+                  return next;
+                })
               }
               className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
                 on
@@ -457,6 +492,16 @@ function CaregiverApplicationFields({
           );
         })}
       </div>
+      {quals.includes("OTHER") ? (
+        <Field label="Specify Other qualification *">
+          <Input
+            value={otherDetail}
+            onChange={(e) => setOtherDetail(e.target.value)}
+            placeholder="e.g. Medication technician, companion care"
+            required
+          />
+        </Field>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Min $/hr">
           <Input value={rateMin} onChange={(e) => setRateMin(e.target.value)} />

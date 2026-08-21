@@ -407,6 +407,7 @@ export function updateMyCaregiverProfile(
     firstName: string;
     lastName: string;
     qualifications: Qualification[];
+    otherQualificationDetail?: string | null;
     hourlyRateMin: number | null;
     hourlyRateMax: number | null;
     serviceRadiusMiles: number | null;
@@ -424,10 +425,13 @@ export function updateMyCaregiverProfile(
   });
 }
 
-export function addCaregiverQualifications(qualifications: Qualification[]) {
+export function addCaregiverQualifications(
+  qualifications: Qualification[],
+  otherQualificationDetail?: string | null,
+) {
   return request<CaregiverProfile>("/api/caregivers/me/qualifications", {
     method: "POST",
-    body: JSON.stringify({ qualifications }),
+    body: JSON.stringify({ qualifications, otherQualificationDetail }),
   });
 }
 
