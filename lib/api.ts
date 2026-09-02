@@ -1041,6 +1041,10 @@ export function getHomeShiftRequests() {
   return request<ShiftRequest[]>("/api/home/shift-requests");
 }
 
+export function getHomeShiftRequest(id: string) {
+  return request<ShiftRequest>(`/api/home/shift-requests/${id}`);
+}
+
 export function getAgencyShiftRequestInbox() {
   return request<AgencyShiftRequestInbox[]>("/api/agencies/me/shift-requests");
 }
