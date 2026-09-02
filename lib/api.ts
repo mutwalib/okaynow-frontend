@@ -1185,6 +1185,32 @@ export function assignAgencyShift(shiftId: string, caregiverProfileId: string) {
   });
 }
 
+export function broadcastAgencyShift(
+  shiftId: string,
+  caregiverProfileIds?: string[],
+) {
+  return request<{ mode: string; recipientsNotified: number; shiftId: string }>(
+    `/api/agencies/me/shifts/${shiftId}/broadcast`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        caregiverProfileIds: caregiverProfileIds ?? [],
+      }),
+    },
+  );
+}
+
+export function getCaregiverAgencyOpenShifts(agencyId?: string) {
+  const q = agencyId ? `?agencyId=${encodeURIComponent(agencyId)}` : "";
+  return request<Shift[]>(`/api/caregivers/me/agency-shifts${q}`);
+}
+
+export function claimCaregiverAgencyShift(shiftId: string) {
+  return request<ShiftClaim>(`/api/caregivers/me/agency-shifts/${shiftId}/claim`, {
+    method: "POST",
+  });
+}
+
 export function getCaregiverRosterInvites() {
   return request<AgencyRosterEntry[]>("/api/caregivers/me/roster-invites");
 }

@@ -18,6 +18,7 @@ const FULL_NAV = [
   { href: "/caregiver", label: "Home", icon: House },
   { href: "/caregiver/rosters", label: "My rosters", icon: Users },
   { href: "/caregiver/find-agencies", label: "Find agencies", icon: Search },
+  { href: "/caregiver/agency-shifts", label: "Agency shifts", icon: CalendarSearch },
   { href: "/caregiver/shifts", label: "Open shifts", icon: CalendarSearch },
   { href: "/caregiver/my-shifts", label: "My shifts", icon: CalendarCheck2 },
   { href: "/caregiver/pay", label: "Pay", icon: Banknote },

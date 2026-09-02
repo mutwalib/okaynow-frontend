@@ -575,6 +575,8 @@ export interface AgencyMe {
   subscriptionAllowsWrites: boolean;
 }
 
+export type ShiftRoutingMode = "INBOX_FIRST" | "AUTO_BROADCAST";
+
 export interface AgencyTenantSettings {
   agencyTakePercent: number;
   defaultPayRate: number;
@@ -591,6 +593,10 @@ export interface AgencyTenantSettings {
   autoInvoiceSendImmediately: boolean;
   clientCaregiverRejectionFee: number;
   platformConversionFee: number;
+  shiftRoutingMode: ShiftRoutingMode;
+  maxIncompleteShiftsPerCaregiver: number;
+  minBufferMinutesBetweenShifts: number;
+  maxDriveMinutesBetweenShifts: number;
 }
 
 export interface ConnectStatus {

@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Megaphone, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
-import { assignAgencyShift, getAgencyRoster, getAgencyShifts } from "@/lib/api";
+import {
+  assignAgencyShift,
+  broadcastAgencyShift,
+  getAgencyRoster,
+  getAgencyShifts,
+} from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { QUALIFICATION_LABELS } from "@/lib/types";
 
@@ -12,7 +18,9 @@ export default function AgencyShiftsPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [assigningShiftId, setAssigningShiftId] = useState<string | null>(null);
+  const [broadcastingShiftId, setBroadcastingShiftId] = useState<string | null>(null);
   const [caregiverId, setCaregiverId] = useState("");
+  const [inviteIds, setInviteIds] = useState<string[]>([]);
 
   const shifts = useQuery({
     queryKey: ["agency-shifts"],
@@ -37,14 +45,42 @@ export default function AgencyShiftsPage() {
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
+  const broadcast = useMutation({
+    mutationFn: ({
+      shiftId,
+      caregiverProfileIds,
+    }: {
+      shiftId: string;
+      caregiverProfileIds?: string[];
+    }) => broadcastAgencyShift(shiftId, caregiverProfileIds),
+    onSuccess: (result) => {
+      const msg =
+        result.mode === "INVITED"
+          ? `Invited ${result.recipientsNotified} caregiver(s)`
+          : `Posted to ${result.recipientsNotified} roster caregiver(s) in the service area`;
+      showToast(msg, "success");
+      setBroadcastingShiftId(null);
+      setInviteIds([]);
+      queryClient.invalidateQueries({ queryKey: ["agency-shifts"] });
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
+
+  function toggleInvite(id: string) {
+    setInviteIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   return (
     <div className="space-y-8">
       <section>
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Schedule</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Agency shifts</h1>
-        <p className="mt-2 max-w-xl text-ink-muted">
-          Tenant-owned shifts from accepted home requests. Assign active roster members —
-          never posted to the global open board.
+        <p className="mt-2 max-w-2xl text-ink-muted">
+          Shifts from accepted home requests. Broadcast to roster caregivers in the
+          service area so they can pick shifts in real time, invite specific people,
+          or assign directly.
         </p>
       </section>
 
@@ -55,47 +91,120 @@ export default function AgencyShiftsPage() {
             No agency shifts yet. Accept a home request from the inbox.
           </p>
         ) : null}
-        {shifts.data?.map((s) => (
-          <article key={s.id} className="rounded-xl border border-border bg-white p-4">
-            <p className="font-medium text-ink">
-              {s.date} · {QUALIFICATION_LABELS[s.requiredQualification]}
-            </p>
-            <p className="text-sm text-ink-muted">
-              {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)} · {s.city} · {s.status}
-              · {s.filledSlots}/{s.requiredHeadcount} filled
-            </p>
-            {assigningShiftId === s.id ? (
-              <div className="mt-3 flex flex-wrap items-end gap-2">
-                <Field label="Roster caregiver" className="min-w-[200px]">
-                  <Select value={caregiverId} onChange={(e) => setCaregiverId(e.target.value)}>
-                    <option value="">Select…</option>
-                    {activeRoster.map((r) => (
-                      <option key={r.id} value={r.caregiverProfileId}>
-                        {r.caregiverFirstName} {r.caregiverLastName}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Button
-                  size="sm"
-                  disabled={!caregiverId || assign.isPending}
-                  onClick={() =>
-                    assign.mutate({ shiftId: s.id, caregiverProfileId: caregiverId })
-                  }
-                >
-                  Confirm assign
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setAssigningShiftId(null)}>
-                  Cancel
-                </Button>
+        {shifts.data?.map((s) => {
+          const needsStaff = s.filledSlots < s.requiredHeadcount;
+          const isOpen = s.status === "OPEN" && s.marketplacePosted;
+          return (
+            <article key={s.id} className="rounded-xl border border-border bg-white p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-ink">
+                    {s.date} · {QUALIFICATION_LABELS[s.requiredQualification]}
+                  </p>
+                  <p className="text-sm text-ink-muted">
+                    {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)} · {s.city} ·{" "}
+                    {s.status}
+                    {isOpen ? " · open to roster" : ""}
+                    · {s.filledSlots}/{s.requiredHeadcount} filled
+                  </p>
+                </div>
               </div>
-            ) : s.filledSlots < s.requiredHeadcount ? (
-              <Button className="mt-3" size="sm" onClick={() => setAssigningShiftId(s.id)}>
-                Assign from roster
-              </Button>
-            ) : null}
-          </article>
-        ))}
+
+              {broadcastingShiftId === s.id ? (
+                <div className="mt-4 space-y-3 rounded-lg border border-border bg-surface/50 p-4">
+                  <p className="text-sm font-medium text-ink">Broadcast options</p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={broadcast.isPending}
+                    onClick={() => broadcast.mutate({ shiftId: s.id })}
+                  >
+                    <Megaphone className="h-3.5 w-3.5" aria-hidden />
+                    Post to all roster in area
+                  </Button>
+                  <div>
+                    <p className="text-xs font-medium text-ink-muted">
+                      Or invite specific caregivers
+                    </p>
+                    <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                      {activeRoster.map((r) => (
+                        <li key={r.id}>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={inviteIds.includes(r.caregiverProfileId)}
+                              onChange={() => toggleInvite(r.caregiverProfileId)}
+                            />
+                            {r.caregiverFirstName} {r.caregiverLastName}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      disabled={inviteIds.length === 0 || broadcast.isPending}
+                      onClick={() =>
+                        broadcast.mutate({
+                          shiftId: s.id,
+                          caregiverProfileIds: inviteIds,
+                        })
+                      }
+                    >
+                      Send invites ({inviteIds.length})
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setBroadcastingShiftId(null);
+                      setInviteIds([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : assigningShiftId === s.id ? (
+                <div className="mt-3 flex flex-wrap items-end gap-2">
+                  <Field label="Assign caregiver" className="min-w-[200px]">
+                    <Select value={caregiverId} onChange={(e) => setCaregiverId(e.target.value)}>
+                      <option value="">Select…</option>
+                      {activeRoster.map((r) => (
+                        <option key={r.id} value={r.caregiverProfileId}>
+                          {r.caregiverFirstName} {r.caregiverLastName}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Button
+                    size="sm"
+                    disabled={!caregiverId || assign.isPending}
+                    onClick={() =>
+                      assign.mutate({ shiftId: s.id, caregiverProfileId: caregiverId })
+                    }
+                  >
+                    Confirm assign
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setAssigningShiftId(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : needsStaff ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => setBroadcastingShiftId(s.id)}>
+                    <Megaphone className="h-3.5 w-3.5" aria-hidden />
+                    Broadcast
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setAssigningShiftId(s.id)}>
+                    <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                    Assign
+                  </Button>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
       </div>
     </div>
   );
