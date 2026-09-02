@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMyCaregiverProfile, updateMyCaregiverProfile, uploadCaregiverPhoto, getMyPublishedReviews } from "@/lib/api";
+import { getMyCaregiverProfile, updateMyCaregiverProfile, uploadCaregiverPhoto, uploadCaregiverCv, getMyPublishedReviews, mediaUrl } from "@/lib/api";
 import {
   QUALIFICATIONS,
   QUALIFICATION_LABELS,
@@ -12,7 +12,7 @@ import {
 import { DEFAULT_STATE, maZipMessage } from "@/lib/service-region";
 import { useToast } from "@/lib/toast-context";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Star } from "lucide-react";
+import { Save, Star, FileText } from "lucide-react";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/shift-card";
@@ -147,6 +147,14 @@ export default function CaregiverProfilePage() {
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
+  const cv = useMutation({
+    mutationFn: uploadCaregiverCv,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["caregiver-me"] });
+      showToast("CV uploaded — agencies on your roster can view it", "success");
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
 
   function needsAgencyReverification(values: FormValues) {
     if (!profile.data) return false;
@@ -220,6 +228,42 @@ export default function CaregiverProfilePage() {
             if (!locked) photo.mutate(file);
           }}
         />
+
+        <div className="rounded-lg border border-line bg-surface/40 p-4">
+          <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
+            <FileText className="h-4 w-4 text-ink-muted" aria-hidden />
+            CV / resume for agencies
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            PDF or image · max 5 MB. Visible to agencies where you are on the roster.
+          </p>
+          {profile.data?.cvUrl ? (
+            <a
+              href={mediaUrl(profile.data.cvUrl) ?? profile.data.cvUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-sm font-medium text-brand-deep underline"
+            >
+              View current CV
+            </a>
+          ) : null}
+          <label className="mt-3 inline-block">
+            <input
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png"
+              className="sr-only"
+              disabled={cv.isPending}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) cv.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <span className="inline-flex cursor-pointer items-center rounded-md border border-border bg-white px-3 py-2 text-sm font-medium hover:border-brand">
+              {cv.isPending ? "Uploading…" : profile.data?.cvUrl ? "Replace CV" : "Upload CV"}
+            </span>
+          </label>
+        </div>
 
         {profile.data?.ratingCount ? (
           <div className="flex items-center gap-2 text-sm text-ink">

@@ -140,6 +140,8 @@ export interface CaregiverProfile {
   homeLat: number | null;
   homeLng: number | null;
   profilePhotoUrl: string | null;
+  cvUrl: string | null;
+  cvUploadedAt: string | null;
   ratingAvg: number | null;
   ratingCount: number | null;
 }
@@ -607,7 +609,7 @@ export type ShiftRequestStatus = "OPEN" | "FULFILLED" | "CANCELLED";
 
 export type ShiftRequestAgencyStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
-export type AgencyCaregiverStatus = "INVITED" | "ACTIVE" | "SUSPENDED";
+export type AgencyCaregiverStatus = "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED";
 
 export interface ShiftRequestTargetAgency {
   agencyId: string;
@@ -665,6 +667,36 @@ export interface AgencyRosterEntry {
   inviteMessage: string | null;
   invitedAt: string;
   respondedAt: string | null;
+}
+
+export interface AgencyRosterMemberDetail {
+  rosterId: string;
+  rosterStatus: AgencyCaregiverStatus;
+  inviteMessage: string | null;
+  invitedAt: string;
+  respondedAt: string | null;
+  removedAt: string | null;
+  caregiverProfileId: string;
+  caregiverUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  accountStatus: UserStatus;
+  qualifications: Qualification[];
+  otherQualificationDetail: string | null;
+  hourlyRateMin: number | null;
+  hourlyRateMax: number | null;
+  serviceRadiusMiles: number | null;
+  homeAddressLine: string | null;
+  homeCity: string | null;
+  homeState: string | null;
+  homeZip: string | null;
+  profilePhotoUrl: string | null;
+  cvUrl: string | null;
+  cvUploadedAt: string | null;
+  ratingAvg: number | null;
+  ratingCount: number | null;
 }
 
 export type CaregiverAgencyInterestStatus =

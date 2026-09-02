@@ -36,6 +36,7 @@ import type {
   ShiftRequest,
   AgencyShiftRequestInbox,
   AgencyRosterEntry,
+  AgencyRosterMemberDetail,
   AgencyTenantSettings,
   ConnectStatus,
   CaregiverAgencyInterest,
@@ -1140,6 +1141,31 @@ export function inviteAgencyRosterCaregiver(email: string, message?: string) {
 export function suspendAgencyRosterMember(rosterId: string) {
   return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/suspend`, {
     method: "POST",
+  });
+}
+
+export function reactivateAgencyRosterMember(rosterId: string) {
+  return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/reactivate`, {
+    method: "POST",
+  });
+}
+
+export function removeAgencyRosterMember(rosterId: string) {
+  return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/remove`, {
+    method: "POST",
+  });
+}
+
+export function getAgencyRosterMember(rosterId: string) {
+  return request<AgencyRosterMemberDetail>(`/api/agencies/me/roster/${rosterId}`);
+}
+
+export function uploadCaregiverCv(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return request<CaregiverProfile>("/api/caregivers/me/cv", {
+    method: "POST",
+    body,
   });
 }
 
