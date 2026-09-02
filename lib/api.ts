@@ -28,6 +28,11 @@ import type {
   CaregiverPayEntry,
   Visit,
   AppNotification,
+  AgencyDirectoryEntry,
+  AgencyPublicProfile,
+  AgencyMe,
+  HomeAgencyConnection,
+  SubscriptionPlan,
 } from "./types";
 
 const API_BASE_URL =
@@ -65,6 +70,7 @@ export interface RegisterPayload {
   medicaidEligible?: MedicaidEligibility;
   relationshipToCareRecipient?: CareRecipientRelationship;
   facilityName?: string;
+  agencyName?: string;
   addressLine?: string;
   city?: string;
   state?: string;
@@ -918,3 +924,93 @@ export function markAllNotificationsRead() {
   });
 }
 
+// —— Agency directory & multi-tenant (Phase A) ——
+
+export function searchAgencyDirectory(params?: {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  qualification?: Qualification;
+}) {
+  const q = new URLSearchParams();
+  if (params?.lat != null) q.set("lat", String(params.lat));
+  if (params?.lng != null) q.set("lng", String(params.lng));
+  if (params?.radius != null) q.set("radius", String(params.radius));
+  if (params?.qualification) q.set("qualification", params.qualification);
+  const qs = q.toString();
+  return request<AgencyDirectoryEntry[]>(
+    `/api/agencies/directory${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function getAgencyPublicProfile(slug: string) {
+  return request<AgencyPublicProfile>(`/api/agencies/${slug}/public-profile`);
+}
+
+export function getMyAgency() {
+  return request<AgencyMe>("/api/agencies/me");
+}
+
+export function updateAgencyDirectoryProfile(payload: {
+  displayName: string;
+  legalName?: string;
+  licenseNumber?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  serviceRadiusMiles?: number;
+  publicDescription?: string;
+  qualificationsSupported?: Qualification[];
+  directoryListed?: boolean;
+}) {
+  return request<AgencyMe>("/api/agencies/me/directory-profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getAgencyConnections() {
+  return request<HomeAgencyConnection[]>("/api/agencies/me/connections");
+}
+
+export function acceptAgencyConnection(connectionId: string) {
+  return request<HomeAgencyConnection>(
+    `/api/agencies/me/connections/${connectionId}/accept`,
+    { method: "POST" },
+  );
+}
+
+export function endAgencyConnectionAsAgency(connectionId: string) {
+  return request<HomeAgencyConnection>(
+    `/api/agencies/me/connections/${connectionId}/end`,
+    { method: "POST" },
+  );
+}
+
+export function createAgencyCheckoutSession(plan: SubscriptionPlan) {
+  return request<{ checkoutUrl: string | null; message: string | null }>(
+    "/api/agencies/me/billing/checkout",
+    { method: "POST", body: JSON.stringify({ plan }) },
+  );
+}
+
+export function getHomeAgencyConnections() {
+  return request<HomeAgencyConnection[]>("/api/home/agencies/connected");
+}
+
+export function requestHomeAgencyConnection(agencyId: string, message?: string) {
+  return request<HomeAgencyConnection>(
+    `/api/home/agencies/${agencyId}/connect-request`,
+    {
+      method: "POST",
+      body: JSON.stringify({ message: message ?? null }),
+    },
+  );
+}
+
+export function endHomeAgencyConnection(agencyId: string) {
+  return request<void>(`/api/home/agencies/${agencyId}/connection`, {
+    method: "DELETE",
+  });
+}

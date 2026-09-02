@@ -1,6 +1,6 @@
 /** Domain types aligned with Phase 1 backend API. */
 
-export type UserRole = "CAREGIVER" | "CLIENT" | "FACILITY" | "ADMIN";
+export type UserRole = "CAREGIVER" | "CLIENT" | "FACILITY" | "AGENCY_ADMIN" | "ADMIN";
 
 export type Qualification = "CNA" | "HHA" | "PCA" | "LPN" | "RN" | "MAP" | "OTHER";
 
@@ -459,6 +459,7 @@ export const ROLE_HOME: Record<UserRole, string> = {
   CAREGIVER: "/caregiver",
   CLIENT: "/client",
   FACILITY: "/facility",
+  AGENCY_ADMIN: "/agency",
   ADMIN: "/",
 };
 
@@ -466,5 +467,102 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   CAREGIVER: "Caregiver",
   CLIENT: "Client / Family",
   FACILITY: "Facility",
-  ADMIN: "Agency Admin",
+  AGENCY_ADMIN: "Home Care Agency",
+  ADMIN: "Platform Admin",
 };
+
+export type SubscriptionStatus =
+  | "TRIAL"
+  | "ACTIVE"
+  | "PAST_DUE"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export type SubscriptionPlan = "STARTER" | "PROFESSIONAL" | "FEATURED";
+
+export const SUBSCRIPTION_PLAN_LABEL: Record<SubscriptionPlan, string> = {
+  STARTER: "Starter",
+  PROFESSIONAL: "Professional",
+  FEATURED: "Featured",
+};
+
+export type ConnectionStatus = "PENDING" | "ACTIVE" | "ENDED";
+
+export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
+  PENDING: "Pending",
+  ACTIVE: "Connected",
+  ENDED: "Ended",
+};
+
+export interface AgencyDirectoryEntry {
+  id: string;
+  slug: string;
+  displayName: string;
+  city: string | null;
+  state: string | null;
+  lat: number | null;
+  lng: number | null;
+  distanceMiles: number | null;
+  subscriptionPlan: SubscriptionPlan;
+  qualificationsSupported: Qualification[];
+  publicDescriptionSnippet: string | null;
+}
+
+export interface AgencyPublicProfile {
+  id: string;
+  slug: string;
+  displayName: string;
+  legalName: string;
+  licenseNumber: string | null;
+  addressLine: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  lat: number | null;
+  lng: number | null;
+  serviceRadiusMiles: number | null;
+  publicDescription: string | null;
+  qualificationsSupported: Qualification[];
+  subscriptionPlan: SubscriptionPlan;
+  subscriptionStatus: SubscriptionStatus;
+  directoryListed: boolean;
+}
+
+export interface AgencyMe {
+  id: string;
+  slug: string;
+  legalName: string;
+  displayName: string;
+  licenseNumber: string | null;
+  addressLine: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  lat: number | null;
+  lng: number | null;
+  serviceRadiusMiles: number | null;
+  publicDescription: string | null;
+  qualificationsSupported: Qualification[];
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: SubscriptionPlan;
+  subscriptionPeriodStart: string | null;
+  subscriptionPeriodEnd: string | null;
+  directoryListed: boolean;
+  stripeConfigured: boolean;
+  subscriptionAllowsWrites: boolean;
+}
+
+export interface HomeAgencyConnection {
+  id: string;
+  agencyId: string;
+  agencySlug: string;
+  agencyDisplayName: string;
+  agencyCity: string | null;
+  agencyState: string | null;
+  homeFirstName: string | null;
+  homeLastName: string | null;
+  status: ConnectionStatus;
+  homeMessage: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+}

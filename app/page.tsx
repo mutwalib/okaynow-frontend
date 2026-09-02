@@ -160,6 +160,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <BrandLogo variant="primary" height={32} />
           <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/agencies" className="hover:text-brand-deep">
+              Find an agency
+            </Link>
             <Link href="/support" className="hover:text-brand-deep">
               Support
             </Link>

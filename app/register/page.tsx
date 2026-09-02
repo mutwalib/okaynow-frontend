@@ -26,7 +26,7 @@ import {
   maZipMessage,
 } from "@/lib/service-region";
 
-const ROLES: UserRole[] = ["CAREGIVER", "CLIENT", "FACILITY"];
+const ROLES: UserRole[] = ["CAREGIVER", "CLIENT", "FACILITY", "AGENCY_ADMIN"];
 
 function RegisterForm() {
   const { register, isAuthenticated, user, isLoading } = useAuth();
@@ -43,6 +43,7 @@ function RegisterForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [facilityName, setFacilityName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
@@ -92,6 +93,17 @@ function RegisterForm() {
         return;
       }
     }
+    if (role === "AGENCY_ADMIN") {
+      if (!agencyName.trim() || !addressLine.trim() || !city.trim() || !zip.trim()) {
+        showToast("Agency name and full business address are required", "error");
+        return;
+      }
+      const zipCheck = maZipMessage(zip);
+      if (zipCheck !== true) {
+        showToast(zipCheck, "error");
+        return;
+      }
+    }
     if (!acceptedLegal) {
       showToast("Accept the Terms, Privacy Policy, and Platform Policy to continue", "error");
       return;
@@ -130,6 +142,15 @@ function RegisterForm() {
         ...(role === "FACILITY"
           ? {
               facilityName: facilityName.trim(),
+              addressLine: addressLine.trim(),
+              city: city.trim(),
+              state: DEFAULT_STATE,
+              zip: zip.trim(),
+            }
+          : {}),
+        ...(role === "AGENCY_ADMIN"
+          ? {
+              agencyName: agencyName.trim(),
               addressLine: addressLine.trim(),
               city: city.trim(),
               state: DEFAULT_STATE,
@@ -192,15 +213,42 @@ function RegisterForm() {
             </Field>
           ) : null}
 
+          {role === "AGENCY_ADMIN" ? (
+            <Field label="Agency name">
+              <Input
+                required
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                placeholder="Harbor Home Care LLC"
+              />
+            </Field>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={role === "FACILITY" ? "Contact first name" : "First name"}>
+            <Field
+              label={
+                role === "FACILITY"
+                  ? "Contact first name"
+                  : role === "AGENCY_ADMIN"
+                    ? "Admin first name"
+                    : "First name"
+              }
+            >
               <Input
                 required
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
               />
             </Field>
-            <Field label={role === "FACILITY" ? "Contact last name" : "Last name"}>
+            <Field
+              label={
+                role === "FACILITY"
+                  ? "Contact last name"
+                  : role === "AGENCY_ADMIN"
+                    ? "Admin last name"
+                    : "Last name"
+              }
+            >
               <Input
                 required
                 value={lastName}
@@ -209,9 +257,9 @@ function RegisterForm() {
             </Field>
           </div>
 
-          {role === "FACILITY" ? (
+          {role === "FACILITY" || role === "AGENCY_ADMIN" ? (
             <>
-              <Field label="Facility address">
+              <Field label={role === "AGENCY_ADMIN" ? "Business address" : "Facility address"}>
                 <Input
                   required
                   value={addressLine}

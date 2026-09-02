@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/lib/toast-context";
 import { CheckCircle2, LogOut, Upload } from "lucide-react";
+import Link from "next/link";
 
 function isImageUrl(url: string | null | undefined) {
   if (!url) return false;
@@ -721,6 +722,23 @@ export default function PendingReviewPage() {
           {status.data?.message ??
             "Finish the steps below to complete your OkayNow application."}
         </p>
+
+        {user.role === "CAREGIVER" ? (
+          <div className="mt-5 rounded-lg border border-line bg-paper p-4">
+            <p className="text-sm font-medium text-ink">Have upcoming shifts?</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              While your account is under review you can still open your
+              schedule, get directions, and clock in or out. New open-shift
+              claims stay paused until approval.
+            </p>
+            <Link
+              href="/caregiver/my-shifts"
+              className="mt-3 inline-flex rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              View my shifts
+            </Link>
+          </div>
+        ) : null}
 
         {!applicationSubmitted &&
         (status.data?.applicationMissing?.length ?? 0) > 0 ? (
