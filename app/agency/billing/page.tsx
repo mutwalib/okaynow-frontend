@@ -181,8 +181,8 @@ export default function AgencyBillingPage() {
                   ) : null}
                 </div>
                 <h3 className="mt-3 font-display text-lg">{plan.displayName}</h3>
-                {plan.priceLabel ? (
-                  <p className="mt-1 text-sm font-medium text-ink">{plan.priceLabel}</p>
+                {plan.priceDisplay ? (
+                  <p className="mt-1 text-sm font-medium text-ink">{plan.priceDisplay}</p>
                 ) : null}
                 {plan.tagline ? (
                   <p className="mt-2 text-sm text-ink-muted">{plan.tagline}</p>
