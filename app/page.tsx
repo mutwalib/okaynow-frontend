@@ -8,8 +8,8 @@ import {
   Building2,
   HandHeart,
   HeartHandshake,
-  HeartPulse,
   LogIn,
+  MapPinned,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ButtonLink } from "@/components/ui/button";
@@ -67,12 +67,12 @@ export default function LandingPage() {
               Sign in
             </Link>
             <ButtonLink
-              href="/register"
+              href="/register?role=AGENCY_ADMIN"
               className="!bg-white !text-brand-deep hover:!bg-brand-soft"
               size="sm"
             >
               <ArrowRight className="h-4 w-4" aria-hidden />
-              Get started
+              Agency signup
             </ButtonLink>
           </div>
         </header>
@@ -85,21 +85,20 @@ export default function LandingPage() {
             className="max-w-full animate-rise"
           />
           <h1 className="mt-4 max-w-xl text-xl font-medium text-white/95 sm:text-2xl animate-rise-delay">
-            Same caregivers. Clear rates.
+            Massachusetts home care, run by agencies you choose.
           </h1>
           <p className="mt-3 max-w-lg text-base text-white/80 animate-rise-delay">
-            Not another gig board. OkayNow keeps families with caregivers they
-            know, fills gaps when needed, and runs W-2 pay, visits, and invoices
-            in one place.
+            Homes connect free. Agencies subscribe for roster, scheduling, EVV,
+            and billing. Caregivers work shifts from agencies that hire them.
           </p>
           <div className="mt-8 flex flex-wrap gap-3 animate-rise-delay-2">
             <ButtonLink
-              href="/register?role=CAREGIVER"
+              href="/register?role=AGENCY_ADMIN"
               className="!bg-white !text-brand-deep hover:!bg-brand-soft"
               size="lg"
             >
-              <HandHeart className="h-5 w-5" aria-hidden />
-              I&apos;m a caregiver
+              <Building2 className="h-5 w-5" aria-hidden />
+              I&apos;m an Agent
             </ButtonLink>
             <ButtonLink
               href="/register?role=CLIENT"
@@ -110,6 +109,15 @@ export default function LandingPage() {
               <HeartHandshake className="h-5 w-5" aria-hidden />
               I need care
             </ButtonLink>
+            <ButtonLink
+              href="/register?role=CAREGIVER"
+              variant="secondary"
+              className="!border-white/40 !bg-transparent !text-white hover:!bg-white/10"
+              size="lg"
+            >
+              <HandHeart className="h-5 w-5" aria-hidden />
+              I&apos;m a caregiver
+            </ButtonLink>
           </div>
         </div>
       </section>
@@ -117,29 +125,29 @@ export default function LandingPage() {
       <section className="atmosphere px-6 py-20 sm:px-10">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-3xl text-ink sm:text-4xl">
-            Built for agencies — not for Uber-for-nursing chaos
+            Software for home care agencies — not a gig marketplace
           </h2>
           <p className="mt-4 text-lg text-ink-muted">
-            Continuity first (primary roster, private invite), marketplace only
-            when you need it. Transparent bill vs pay, EVV-ready home visits,
-            and facility surge when ratios are on the line.
+            OkayNow is the directory and operations platform. Families find
+            subscribed agencies, agencies assign from their own roster, and each
+            agency runs its own payroll and W-2s.
           </p>
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
             {[
               {
-                title: "Families",
-                body: "Prefer the same caregiver week to week. Call out to your roster before the open board.",
+                title: "Homes",
+                body: "Browse agencies near you, connect for free, and send care needs to the agencies you trust.",
                 Icon: HeartHandshake,
               },
               {
-                title: "Caregivers",
-                body: "Clear pay, real addresses, travel-aware home shifts — W-2 employment, not 1099 guesswork.",
-                Icon: HeartPulse,
+                title: "Agencies",
+                body: "Subscribe for directory listing, roster, scheduling, EVV, home invoices via Stripe Connect, and hours export.",
+                Icon: Building2,
               },
               {
-                title: "Agency ops",
-                body: "One cockpit: open seats, expiring credentials, unpaid invoices, visit exceptions.",
-                Icon: Building2,
+                title: "Caregivers",
+                body: "Join agency rosters by invite, then see and clock the shifts those agencies assign you.",
+                Icon: HandHeart,
               },
             ].map((item) => (
               <div key={item.title}>
@@ -156,12 +164,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-t border-line bg-paper px-6 py-16 sm:px-10">
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-xl">
+            <p className="text-sm font-medium uppercase tracking-wide text-brand">
+              Find care
+            </p>
+            <h2 className="mt-2 font-display text-2xl text-ink sm:text-3xl">
+              Browse Massachusetts agencies
+            </h2>
+            <p className="mt-3 text-ink-muted">
+              See who is listed on OkayNow, then create a free home account to
+              connect and request care.
+            </p>
+          </div>
+          <ButtonLink href="/agencies" size="lg">
+            <MapPinned className="h-5 w-5" aria-hidden />
+            Agency directory
+          </ButtonLink>
+        </div>
+      </section>
+
       <footer className="border-t border-line bg-paper px-6 py-8 text-sm text-ink-muted sm:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <BrandLogo variant="primary" height={32} />
           <nav className="flex flex-wrap gap-x-4 gap-y-1">
             <Link href="/agencies" className="hover:text-brand-deep">
               Find an agency
+            </Link>
+            <Link href="/register?role=AGENCY_ADMIN" className="hover:text-brand-deep">
+              Agency signup
             </Link>
             <Link href="/support" className="hover:text-brand-deep">
               Support
@@ -176,7 +208,7 @@ export default function LandingPage() {
               Terms
             </Link>
           </nav>
-          <span>Massachusetts home care staffing</span>
+          <span>Massachusetts home care</span>
         </div>
       </footer>
     </div>
