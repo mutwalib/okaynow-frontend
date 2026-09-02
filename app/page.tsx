@@ -67,7 +67,7 @@ export default function LandingPage() {
               Sign in
             </Link>
             <ButtonLink
-              href="/register?role=AGENCY_ADMIN"
+              href="/register/agency"
               className="!bg-white !text-brand-deep hover:!bg-brand-soft"
               size="sm"
             >
@@ -93,7 +93,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3 animate-rise-delay-2">
             <ButtonLink
-              href="/register?role=AGENCY_ADMIN"
+              href="/register/agency"
               className="!bg-white !text-brand-deep hover:!bg-brand-soft"
               size="lg"
             >
@@ -192,7 +192,7 @@ export default function LandingPage() {
             <Link href="/agencies" className="hover:text-brand-deep">
               Find an agency
             </Link>
-            <Link href="/register?role=AGENCY_ADMIN" className="hover:text-brand-deep">
+            <Link href="/register/agency" className="hover:text-brand-deep">
               Agency signup
             </Link>
             <Link href="/support" className="hover:text-brand-deep">

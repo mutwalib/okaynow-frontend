@@ -164,7 +164,7 @@ export default function AgencyDirectoryPage() {
 
         <p className="mt-10 text-center text-sm text-ink-muted">
           Are you an agency?{" "}
-          <Link href="/register?role=AGENCY_ADMIN" className="text-brand hover:underline">
+          <Link href="/register/agency" className="text-brand hover:underline">
             Start your subscription
           </Link>
         </p>
