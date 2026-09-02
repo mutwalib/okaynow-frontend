@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Plus } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
+import { Building2 } from "lucide-react";
+import { AgencyDirectoryBrowser } from "@/components/agency-directory-browser";
 import { getHomeAgencyConnections } from "@/lib/api";
 import { CONNECTION_STATUS_LABEL } from "@/lib/types";
 
@@ -14,23 +14,25 @@ export default function ClientAgenciesPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <section className="animate-rise">
         <p className="text-sm font-medium uppercase tracking-wide text-brand">
           Your agencies
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink">Connected agencies</h1>
+        <h1 className="mt-1 font-display text-3xl text-ink">Agencies</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Connect with one or more agencies from the directory. Shift requests
-          (coming soon) go only to agencies you are connected with.
+          Search the directory by city or ZIP, open profiles, and manage
+          connections. Care requests go only to agencies you are connected with.
         </p>
-        <ButtonLink href="/agencies" className="mt-4" variant="secondary">
-          <Plus className="h-4 w-4" aria-hidden />
-          Find agencies
-        </ButtonLink>
       </section>
 
       <section className="space-y-3">
+        <h2 className="font-display text-xl text-ink">Browse directory</h2>
+        <AgencyDirectoryBrowser compact />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl text-ink">Connected</h2>
         {connections.isLoading ? (
           <p className="text-ink-muted">Loading…</p>
         ) : null}
@@ -39,11 +41,9 @@ export default function ClientAgenciesPage() {
             <Building2 className="mx-auto h-10 w-10 text-brand/50" aria-hidden />
             <p className="mt-3 font-medium">No agencies connected yet</p>
             <p className="mt-1 text-sm text-ink-muted">
-              Browse the directory and send a free connection request.
+              Use the search above, open a profile, and send a free connection
+              request.
             </p>
-            <ButtonLink href="/agencies" className="mt-4">
-              Browse directory
-            </ButtonLink>
           </div>
         ) : null}
         {connections.data?.map((c) => (

@@ -38,6 +38,8 @@ import type {
   AgencyRosterEntry,
   AgencyTenantSettings,
   ConnectStatus,
+  CaregiverAgencyInterest,
+  CaregiverLookup,
 } from "./types";
 
 const API_BASE_URL =
@@ -953,12 +955,18 @@ export function searchAgencyDirectory(params?: {
   lng?: number;
   radius?: number;
   qualification?: Qualification;
+  city?: string;
+  zip?: string;
+  hiringOnly?: boolean;
 }) {
   const q = new URLSearchParams();
   if (params?.lat != null) q.set("lat", String(params.lat));
   if (params?.lng != null) q.set("lng", String(params.lng));
   if (params?.radius != null) q.set("radius", String(params.radius));
   if (params?.qualification) q.set("qualification", params.qualification);
+  if (params?.city) q.set("city", params.city);
+  if (params?.zip) q.set("zip", params.zip);
+  if (params?.hiringOnly) q.set("hiringOnly", "true");
   const qs = q.toString();
   return request<AgencyDirectoryEntry[]>(
     `/api/agencies/directory${qs ? `?${qs}` : ""}`,
@@ -985,6 +993,8 @@ export function updateAgencyDirectoryProfile(payload: {
   publicDescription?: string;
   qualificationsSupported?: Qualification[];
   directoryListed?: boolean;
+  hiringOpen?: boolean;
+  hiringNote?: string | null;
 }) {
   return request<AgencyMe>("/api/agencies/me/directory-profile", {
     method: "PATCH",
@@ -1148,8 +1158,47 @@ export function getCaregiverRosterInvites() {
   return request<AgencyRosterEntry[]>("/api/caregivers/me/roster-invites");
 }
 
+export function getCaregiverRosters() {
+  return request<AgencyRosterEntry[]>("/api/caregivers/me/rosters");
+}
+
 export function acceptCaregiverRosterInvite(id: string) {
   return request<AgencyRosterEntry>(`/api/caregivers/me/roster-invites/${id}/accept`, {
     method: "POST",
   });
+}
+
+export function getCaregiverAgencyInterests() {
+  return request<CaregiverAgencyInterest[]>("/api/caregivers/me/agency-interests");
+}
+
+export function expressCaregiverAgencyInterest(agencyId: string, message?: string) {
+  return request<CaregiverAgencyInterest>("/api/caregivers/me/agency-interests", {
+    method: "POST",
+    body: JSON.stringify({ agencyId, message: message ?? null }),
+  });
+}
+
+export function lookupAgencyCaregiverByEmail(email: string) {
+  return request<CaregiverLookup>(
+    `/api/agencies/me/caregivers/lookup?email=${encodeURIComponent(email)}`,
+  );
+}
+
+export function getAgencyCaregiverInterests() {
+  return request<CaregiverAgencyInterest[]>("/api/agencies/me/caregiver-interests");
+}
+
+export function acceptAgencyCaregiverInterest(interestId: string) {
+  return request<CaregiverAgencyInterest>(
+    `/api/agencies/me/caregiver-interests/${interestId}/accept`,
+    { method: "POST" },
+  );
+}
+
+export function declineAgencyCaregiverInterest(interestId: string) {
+  return request<CaregiverAgencyInterest>(
+    `/api/agencies/me/caregiver-interests/${interestId}/decline`,
+    { method: "POST" },
+  );
 }

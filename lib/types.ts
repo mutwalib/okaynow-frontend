@@ -502,12 +502,15 @@ export interface AgencyDirectoryEntry {
   displayName: string;
   city: string | null;
   state: string | null;
+  zip?: string | null;
   lat: number | null;
   lng: number | null;
   distanceMiles: number | null;
   subscriptionPlan: SubscriptionPlan;
   qualificationsSupported: Qualification[];
   publicDescriptionSnippet: string | null;
+  hiringOpen?: boolean;
+  hiringNote?: string | null;
 }
 
 export interface AgencyPublicProfile {
@@ -528,6 +531,8 @@ export interface AgencyPublicProfile {
   subscriptionPlan: SubscriptionPlan;
   subscriptionStatus: SubscriptionStatus;
   directoryListed: boolean;
+  hiringOpen?: boolean;
+  hiringNote?: string | null;
 }
 
 export interface AgencyMe {
@@ -550,6 +555,8 @@ export interface AgencyMe {
   subscriptionPeriodStart: string | null;
   subscriptionPeriodEnd: string | null;
   directoryListed: boolean;
+  hiringOpen: boolean;
+  hiringNote: string | null;
   stripeConfigured: boolean;
   stripeConnectReady: boolean;
   subscriptionAllowsWrites: boolean;
@@ -658,4 +665,41 @@ export interface AgencyRosterEntry {
   inviteMessage: string | null;
   invitedAt: string;
   respondedAt: string | null;
+}
+
+export type CaregiverAgencyInterestStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "WITHDRAWN";
+
+export interface CaregiverAgencyInterest {
+  id: string;
+  agencyId: string;
+  agencyDisplayName: string;
+  agencyCity: string | null;
+  agencyState: string | null;
+  agencyHiringOpen: boolean;
+  caregiverProfileId: string;
+  caregiverFirstName: string;
+  caregiverLastName: string;
+  caregiverEmail: string;
+  qualifications: Qualification[];
+  status: CaregiverAgencyInterestStatus;
+  message: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface CaregiverLookup {
+  caregiverProfileId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  qualifications: Qualification[];
+  city: string | null;
+  state: string | null;
+  serviceRadiusMiles: number | null;
+  alreadyOnRoster: boolean;
+  rosterStatus: string | null;
 }

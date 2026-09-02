@@ -106,6 +106,13 @@ export default function AgencyPublicProfilePage() {
             </div>
           </div>
 
+          {agency.hiringOpen ? (
+            <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              Hiring caregivers
+              {agency.hiringNote ? ` — ${agency.hiringNote}` : ""}
+            </p>
+          ) : null}
+
           {agency.publicDescription ? (
             <p className="mt-6 whitespace-pre-wrap text-ink-muted">
               {agency.publicDescription}

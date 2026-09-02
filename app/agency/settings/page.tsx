@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
 import { getMyAgency, updateAgencyDirectoryProfile } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -29,6 +29,8 @@ export default function AgencySettingsPage() {
   const [zip, setZip] = useState("");
   const [publicDescription, setPublicDescription] = useState("");
   const [directoryListed, setDirectoryListed] = useState(false);
+  const [hiringOpen, setHiringOpen] = useState(false);
+  const [hiringNote, setHiringNote] = useState("");
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
 
   useEffect(() => {
@@ -41,6 +43,8 @@ export default function AgencySettingsPage() {
     setZip(agency.data.zip ?? "");
     setPublicDescription(agency.data.publicDescription ?? "");
     setDirectoryListed(agency.data.directoryListed);
+    setHiringOpen(agency.data.hiringOpen ?? false);
+    setHiringNote(agency.data.hiringNote ?? "");
     setQualifications(agency.data.qualificationsSupported ?? []);
   }, [agency.data]);
 
@@ -56,6 +60,8 @@ export default function AgencySettingsPage() {
         zip: zip || undefined,
         publicDescription: publicDescription || undefined,
         directoryListed,
+        hiringOpen,
+        hiringNote: hiringNote.trim() || null,
         qualificationsSupported: qualifications,
       }),
     onSuccess: () => {
@@ -154,6 +160,23 @@ export default function AgencySettingsPage() {
           />
           Listed in public directory (requires active subscription)
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={hiringOpen}
+            onChange={(e) => setHiringOpen(e.target.checked)}
+          />
+          Open to caregiver applications (shown in caregiver Find agencies)
+        </label>
+        {hiringOpen ? (
+          <Field label="Hiring note (optional)">
+            <Input
+              value={hiringNote}
+              onChange={(e) => setHiringNote(e.target.value)}
+              placeholder="e.g. Seeking HHAs for evenings in Middlesex County"
+            />
+          </Field>
+        ) : null}
         <Button type="submit" disabled={save.isPending}>
           {save.isPending ? "Saving…" : "Save profile"}
         </Button>

@@ -2,12 +2,13 @@
 
 import {
   Banknote,
-  Building2,
   CalendarCheck2,
   CalendarSearch,
   ClipboardList,
   House,
+  Search,
   UserRound,
+  Users,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { RoleGuard } from "@/components/role-guard";
@@ -15,7 +16,8 @@ import { useAuth } from "@/lib/auth-context";
 
 const FULL_NAV = [
   { href: "/caregiver", label: "Home", icon: House },
-  { href: "/caregiver/roster-invites", label: "Roster invites", icon: Building2 },
+  { href: "/caregiver/rosters", label: "My rosters", icon: Users },
+  { href: "/caregiver/find-agencies", label: "Find agencies", icon: Search },
   { href: "/caregiver/shifts", label: "Open shifts", icon: CalendarSearch },
   { href: "/caregiver/my-shifts", label: "My shifts", icon: CalendarCheck2 },
   { href: "/caregiver/pay", label: "Pay", icon: Banknote },
@@ -24,7 +26,8 @@ const FULL_NAV = [
 
 const PENDING_NAV = [
   { href: "/pending-review", label: "Application", icon: ClipboardList },
-  { href: "/caregiver/roster-invites", label: "Roster invites", icon: Building2 },
+  { href: "/caregiver/rosters", label: "My rosters", icon: Users },
+  { href: "/caregiver/find-agencies", label: "Find agencies", icon: Search },
   { href: "/caregiver/my-shifts", label: "My shifts", icon: CalendarCheck2 },
 ];
 
@@ -35,9 +38,9 @@ function CaregiverShell({ children }: { children: React.ReactNode }) {
     <AppShell role="CAREGIVER" nav={pending ? PENDING_NAV : FULL_NAV}>
       {pending ? (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          Your account is under agency review. You can still view upcoming
-          shifts, accept roster invites, open directions, and clock in or out.
-          Claiming new open shifts resumes after approval.
+          Your account is under agency review. You can still view your rosters,
+          apply to hiring agencies, accept invites, and clock in or out on
+          assigned shifts.
         </div>
       ) : null}
       {children}

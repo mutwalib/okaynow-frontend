@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { PlusCircle } from "lucide-react";
+import { AgencyDirectoryBrowser } from "@/components/agency-directory-browser";
 import { getMyClientProfile, getShifts } from "@/lib/api";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, LoadingBlock, ShiftCard } from "@/components/shift-card";
@@ -35,12 +36,15 @@ export default function ClientHomePage() {
             : "Request care when you need it"}
         </h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Request private home care for your household. You only see shifts you
-          post — other families and facilities are not shared with you.
+          Browse agencies near you, connect for free, then send care needs to the
+          agencies you choose.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
+          <ButtonLink href="/client/agencies" size="lg">
+            My agencies
+          </ButtonLink>
           {profile.data?.canCreateShifts ? (
-            <ButtonLink href="/client/shifts/new" size="lg">
+            <ButtonLink href="/client/shifts/new" variant="secondary" size="lg">
               <PlusCircle className="h-5 w-5" aria-hidden />
               Post a shift
             </ButtonLink>
@@ -51,51 +55,66 @@ export default function ClientHomePage() {
         </div>
       </section>
 
-      {profile.data?.canViewShifts ? (
-      <section className="animate-rise-delay">
-        <h2 className="mb-3 font-display text-2xl text-ink">Recent posts</h2>
-        {shifts.isLoading ? <LoadingBlock /> : null}
-        {shifts.isError ? (
-          <EmptyState
-            title="No shifts yet"
-            body="Post your first shift to get started."
-            action={
-              profile.data.canCreateShifts ? (
-                <ButtonLink href="/client/shifts/new">
-                  <PlusCircle className="h-4 w-4" aria-hidden />
-                  Post a shift
-                </ButtonLink>
-              ) : undefined
-            }
-          />
-        ) : null}
-        {!shifts.isLoading && !shifts.isError && (shifts.data?.length ?? 0) === 0 ? (
-          <EmptyState
-            title="No shifts yet"
-            body="Post your first shift to get started."
-            action={
-              profile.data.canCreateShifts ? (
-                <ButtonLink href="/client/shifts/new">
-                  <PlusCircle className="h-4 w-4" aria-hidden />
-                  Post a shift
-                </ButtonLink>
-              ) : undefined
-            }
-          />
-        ) : null}
-        {(shifts.data?.length ?? 0) > 0 ? (
-          <div className="rounded-lg border border-line bg-paper px-4 sm:px-5">
-            {shifts.data?.map((shift) => (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                href={`/client/shifts/${shift.id}`}
-                showBillRate
-              />
-            ))}
+      <section className="animate-rise-delay space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-2xl text-ink">Find agencies</h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Filter by city or ZIP, open a profile, and request a connection.
+            </p>
           </div>
-        ) : null}
+          <ButtonLink href="/client/agencies" variant="secondary" size="sm">
+            Connected agencies
+          </ButtonLink>
+        </div>
+        <AgencyDirectoryBrowser compact />
       </section>
+
+      {profile.data?.canViewShifts ? (
+        <section>
+          <h2 className="mb-3 font-display text-2xl text-ink">Recent posts</h2>
+          {shifts.isLoading ? <LoadingBlock /> : null}
+          {shifts.isError ? (
+            <EmptyState
+              title="No shifts yet"
+              body="Post your first shift to get started."
+              action={
+                profile.data.canCreateShifts ? (
+                  <ButtonLink href="/client/shifts/new">
+                    <PlusCircle className="h-4 w-4" aria-hidden />
+                    Post a shift
+                  </ButtonLink>
+                ) : undefined
+              }
+            />
+          ) : null}
+          {!shifts.isLoading && !shifts.isError && (shifts.data?.length ?? 0) === 0 ? (
+            <EmptyState
+              title="No shifts yet"
+              body="Post your first shift to get started."
+              action={
+                profile.data.canCreateShifts ? (
+                  <ButtonLink href="/client/shifts/new">
+                    <PlusCircle className="h-4 w-4" aria-hidden />
+                    Post a shift
+                  </ButtonLink>
+                ) : undefined
+              }
+            />
+          ) : null}
+          {(shifts.data?.length ?? 0) > 0 ? (
+            <div className="rounded-lg border border-line bg-paper px-4 sm:px-5">
+              {shifts.data?.map((shift) => (
+                <ShiftCard
+                  key={shift.id}
+                  shift={shift}
+                  href={`/client/shifts/${shift.id}`}
+                  showBillRate
+                />
+              ))}
+            </div>
+          ) : null}
+        </section>
       ) : profile.data ? (
         <p className="rounded-lg border border-line bg-paper p-5 text-sm text-ink-muted">
           Shift viewing is disabled for this account. Contact the agency if you need access.
