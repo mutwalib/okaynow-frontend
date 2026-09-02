@@ -6,6 +6,7 @@ import {
   CreditCard,
   House,
   Link2,
+  Receipt,
   Settings,
   Users,
   Wallet,
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/agency/roster", label: "Roster", icon: Users },
   { href: "/agency/connections", label: "Home connections", icon: Link2 },
   { href: "/agency/rates", label: "Rates", icon: Wallet },
+  { href: "/agency/invoices", label: "Invoices", icon: Receipt },
   { href: "/agency/billing", label: "Billing", icon: CreditCard },
   { href: "/agency/settings", label: "Directory profile", icon: Settings },
 ];

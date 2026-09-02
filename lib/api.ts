@@ -825,6 +825,23 @@ export function getMyInvoices(page = 0, size = 50) {
   );
 }
 
+export function createClientInvoiceCheckout(invoiceId: string) {
+  return request<{ checkoutUrl: string | null; message: string | null }>(
+    `/api/clients/me/invoices/${invoiceId}/checkout`,
+    { method: "POST" },
+  );
+}
+
+export function getAgencyInvoices() {
+  return request<ClientInvoice[]>("/api/agencies/me/invoices");
+}
+
+export function sendAgencyInvoice(invoiceId: string) {
+  return request<ClientInvoice>(`/api/agencies/me/invoices/${invoiceId}/send`, {
+    method: "POST",
+  });
+}
+
 export function getMyFacilityInvoices(page = 0, size = 50) {
   return request<PagedResponse<ClientInvoice>>(
     `/api/facilities/me/invoices?page=${page}&size=${size}`,

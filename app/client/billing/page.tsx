@@ -1,7 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { downloadMyInvoicePdf, getMyInvoices } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import {
+  createClientInvoiceCheckout,
+  downloadMyInvoicePdf,
+  getMyInvoices,
+} from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useListPagination } from "@/lib/pagination";
 import { LoadingBlock } from "@/components/shift-card";
@@ -9,17 +14,34 @@ import { PlatformConversionPanel } from "@/components/platform-conversion-panel"
 import { Button } from "@/components/ui/button";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { useToast } from "@/lib/toast-context";
-import { Printer, Receipt } from "lucide-react";
+import { CreditCard, Printer, Receipt } from "lucide-react";
 import { useState } from "react";
 
 export default function ClientBillingPage() {
   const { showToast } = useToast();
+  const params = useSearchParams();
+  const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const { page, setPage, pageSize, setPageSize } = useListPagination();
   const invoices = useQuery({
     queryKey: ["my-invoices", page, pageSize],
     queryFn: () => getMyInvoices(page, pageSize),
   });
+
+  const pay = useMutation({
+    mutationFn: createClientInvoiceCheckout,
+    onSuccess: (result) => {
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+      showToast(result.message ?? "Online payment is unavailable.", "info");
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
+
+  const paidResult = params.get("paid");
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-rise">
       <div>
@@ -28,12 +50,22 @@ export default function ClientBillingPage() {
           Billing
         </h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Invoices from OkayNow for completed care. Download a PDF to print or
-          save. Pay by the due date (or contact the agency). If you hire a
-          caregiver you met here for ongoing private care, report it below —
-          the platform conversion fee in your rate card / Terms applies.
+          Invoices from your connected agency for completed care. Pay online when
+          the agency has Stripe Connect enabled, or download a PDF. If you hire a
+          caregiver you met here for ongoing private care, report it below.
         </p>
       </div>
+
+      {paidResult === "success" ? (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Payment submitted. Your invoice should show as paid shortly.
+        </p>
+      ) : null}
+      {paidResult === "cancel" ? (
+        <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Payment was cancelled. You can try again anytime.
+        </p>
+      ) : null}
 
       <PlatformConversionPanel />
 
@@ -94,7 +126,20 @@ export default function ClientBillingPage() {
                 <Printer className="h-4 w-4" aria-hidden />
                 {busyId === inv.id ? "Preparing…" : "Download PDF"}
               </Button>
-              {inv.status === "SENT" ? (
+              {inv.status === "SENT" && inv.payableOnline ? (
+                <Button
+                  size="sm"
+                  disabled={pay.isPending}
+                  onClick={() => {
+                    pay.mutate(inv.id);
+                    queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
+                  }}
+                >
+                  <CreditCard className="h-4 w-4" aria-hidden />
+                  {pay.isPending ? "Redirecting…" : "Pay now"}
+                </Button>
+              ) : null}
+              {inv.status === "SENT" && !inv.payableOnline ? (
                 <p className="text-sm font-medium text-brand-deep">
                   Payment requested — please pay by {formatDate(inv.dueDate)}.
                 </p>
@@ -120,7 +165,6 @@ export default function ClientBillingPage() {
           totalPages={invoices.data.totalPages}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
-          disabled={invoices.isFetching}
         />
       ) : null}
     </div>

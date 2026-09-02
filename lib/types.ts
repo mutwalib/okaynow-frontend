@@ -370,6 +370,7 @@ export interface ClientInvoiceLine {
 export interface ClientInvoice {
   id: string;
   invoiceNumber: string;
+  agencyId?: string | null;
   clientProfileId: string | null;
   clientFirstName: string | null;
   clientLastName: string | null;
@@ -384,6 +385,7 @@ export interface ClientInvoice {
   paidAt: string | null;
   voidedAt: string | null;
   createdAt: string;
+  payableOnline?: boolean;
   lines: ClientInvoiceLine[];
 }
 
