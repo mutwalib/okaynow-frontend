@@ -490,6 +490,16 @@ export const SUBSCRIPTION_PLAN_LABEL: Record<SubscriptionPlan, string> = {
   FEATURED: "Featured",
 };
 
+export interface SubscriptionPlanCatalogEntry {
+  plan: SubscriptionPlan;
+  displayName: string;
+  tagline: string | null;
+  features: string[];
+  priceLabel: string | null;
+  sortOrder: number;
+  enabled: boolean;
+}
+
 export type ConnectionStatus = "PENDING" | "ACTIVE" | "ENDED";
 
 export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {

@@ -3,13 +3,14 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { CreditCard, Download, Landmark } from "lucide-react";
+import { Check, CreditCard, Download, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import {
   createAgencyCheckoutSession,
   downloadAgencyHoursExport,
   getAgencyConnectStatus,
+  getAgencySubscriptionPlans,
   getMyAgency,
   startAgencyConnectOnboarding,
 } from "@/lib/api";
@@ -18,8 +19,6 @@ import {
   SUBSCRIPTION_PLAN_LABEL,
   type SubscriptionPlan,
 } from "@/lib/types";
-
-const PLANS: SubscriptionPlan[] = ["STARTER", "PROFESSIONAL", "FEATURED"];
 
 export default function AgencyBillingPage() {
   const params = useSearchParams();
@@ -35,6 +34,10 @@ export default function AgencyBillingPage() {
   const agency = useQuery({
     queryKey: ["agency-me"],
     queryFn: getMyAgency,
+  });
+  const planCatalog = useQuery({
+    queryKey: ["agency-subscription-plans"],
+    queryFn: getAgencySubscriptionPlans,
   });
   const connect = useQuery({
     queryKey: ["agency-connect"],
@@ -89,6 +92,8 @@ export default function AgencyBillingPage() {
 
   const checkoutResult = params.get("checkout");
   const connectResult = params.get("connect");
+  const currentPlan = agency.data?.subscriptionPlan ?? "STARTER";
+  const plans = planCatalog.data ?? [];
 
   return (
     <div className="space-y-10">
@@ -121,26 +126,97 @@ export default function AgencyBillingPage() {
       ) : null}
 
       {agency.data ? (
-        <div className="rounded-xl border border-border bg-white p-5 text-sm">
-          <p>
-            Current status:{" "}
-            <strong>{agency.data.subscriptionStatus}</strong> (
-            {SUBSCRIPTION_PLAN_LABEL[agency.data.subscriptionPlan]})
+        <div className="rounded-xl border border-brand/25 bg-brand-soft/20 p-5 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-deep">
+            Active plan
           </p>
-          {agency.data.subscriptionPeriodEnd ? (
-            <p className="mt-1 text-ink-muted">
-              Period ends:{" "}
-              {new Date(agency.data.subscriptionPeriodEnd).toLocaleDateString()}
-            </p>
-          ) : null}
+          <p className="mt-1 font-display text-xl text-ink">
+            {SUBSCRIPTION_PLAN_LABEL[agency.data.subscriptionPlan]}
+          </p>
+          <p className="mt-1 text-ink-muted">
+            Status: <strong>{agency.data.subscriptionStatus}</strong>
+            {agency.data.subscriptionPeriodEnd ? (
+              <>
+                {" "}
+                · Period ends{" "}
+                {new Date(agency.data.subscriptionPeriodEnd).toLocaleDateString()}
+              </>
+            ) : null}
+          </p>
           {!agency.data.stripeConfigured ? (
             <p className="mt-3 text-ink-muted">
               Stripe is not configured in this environment. New agencies start on
-              a 14-day trial; contact platform support for production activation.
+              Starter with a 14-day trial; contact platform support for production
+              activation.
             </p>
           ) : null}
         </div>
       ) : null}
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-ink">Choose a plan</h2>
+        {planCatalog.isLoading ? (
+          <p className="text-sm text-ink-muted">Loading plans…</p>
+        ) : null}
+        <div className="grid gap-4 md:grid-cols-3">
+          {plans.map((plan) => {
+            const isCurrent = currentPlan === plan.plan;
+            return (
+              <article
+                key={plan.plan}
+                className={`flex flex-col rounded-xl border bg-white p-5 shadow-sm ${
+                  isCurrent ? "border-brand ring-1 ring-brand/20" : "border-border"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <CreditCard className="h-6 w-6 shrink-0 text-brand" aria-hidden />
+                  {isCurrent ? (
+                    <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Current plan
+                    </span>
+                  ) : plan.plan === "STARTER" ? (
+                    <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                      Default
+                    </span>
+                  ) : null}
+                </div>
+                <h3 className="mt-3 font-display text-lg">{plan.displayName}</h3>
+                {plan.priceLabel ? (
+                  <p className="mt-1 text-sm font-medium text-ink">{plan.priceLabel}</p>
+                ) : null}
+                {plan.tagline ? (
+                  <p className="mt-2 text-sm text-ink-muted">{plan.tagline}</p>
+                ) : null}
+                <ul className="mt-4 flex-1 space-y-2 text-sm text-ink-muted">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex gap-2">
+                      <Check
+                        className="mt-0.5 h-4 w-4 shrink-0 text-brand"
+                        aria-hidden
+                      />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="mt-5"
+                  variant={isCurrent ? "secondary" : "primary"}
+                  disabled={
+                    isCurrent || checkout.isPending || !agency.data?.stripeConfigured
+                  }
+                  onClick={() => checkout.mutate(plan.plan)}
+                >
+                  {isCurrent
+                    ? "Current plan"
+                    : checkout.isPending
+                      ? "Redirecting…"
+                      : "Subscribe"}
+                </Button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -214,35 +290,6 @@ export default function AgencyBillingPage() {
           </Button>
         </form>
       </section>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {PLANS.map((plan) => (
-          <article
-            key={plan}
-            className="flex flex-col rounded-xl border border-border bg-white p-5 shadow-sm"
-          >
-            <CreditCard className="h-6 w-6 text-brand" aria-hidden />
-            <h2 className="mt-3 font-display text-lg">
-              {SUBSCRIPTION_PLAN_LABEL[plan]}
-            </h2>
-            <p className="mt-2 flex-1 text-sm text-ink-muted">
-              {plan === "STARTER"
-                ? "Directory listing, home connections, basic console."
-                : plan === "PROFESSIONAL"
-                  ? "Full scheduling, roster, rates, and hours export."
-                  : "Featured placement in the home directory."}
-            </p>
-            <Button
-              className="mt-4"
-              variant={plan === "PROFESSIONAL" ? "default" : "secondary"}
-              disabled={checkout.isPending || !agency.data?.stripeConfigured}
-              onClick={() => checkout.mutate(plan)}
-            >
-              {checkout.isPending ? "Redirecting…" : "Subscribe"}
-            </Button>
-          </article>
-        ))}
-      </div>
     </div>
   );
 }

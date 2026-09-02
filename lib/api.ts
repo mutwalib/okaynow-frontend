@@ -37,6 +37,7 @@ import type {
   AgencyShiftRequestInbox,
   AgencyRosterEntry,
   AgencyRosterMemberDetail,
+  SubscriptionPlanCatalogEntry,
   AgencyTenantSettings,
   ConnectStatus,
   CaregiverAgencyInterest,
@@ -1026,6 +1027,10 @@ export function createAgencyCheckoutSession(plan: SubscriptionPlan) {
     "/api/agencies/me/billing/checkout",
     { method: "POST", body: JSON.stringify({ plan }) },
   );
+}
+
+export function getAgencySubscriptionPlans() {
+  return request<SubscriptionPlanCatalogEntry[]>("/api/agencies/subscription-plans");
 }
 
 export function getAgencyConnectStatus() {
