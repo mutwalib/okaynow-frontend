@@ -25,6 +25,7 @@ export default function ClientLayout({
   const nav: NavItem[] = [
     { href: "/client", label: "Home", icon: House },
     { href: "/client/agencies", label: "Agencies", icon: Link2 },
+    { href: "/client/requests", label: "Care requests", icon: ClipboardList },
     ...(profile.data?.canViewShifts
       ? [
           { href: "/client/schedule", label: "Schedule", icon: CalendarDays },

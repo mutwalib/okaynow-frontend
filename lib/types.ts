@@ -566,3 +566,67 @@ export interface HomeAgencyConnection {
   createdAt: string;
   respondedAt: string | null;
 }
+
+export type ShiftRequestStatus = "OPEN" | "FULFILLED" | "CANCELLED";
+
+export type ShiftRequestAgencyStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+
+export type AgencyCaregiverStatus = "INVITED" | "ACTIVE" | "SUSPENDED";
+
+export interface ShiftRequestTargetAgency {
+  agencyId: string;
+  agencyDisplayName: string;
+  status: ShiftRequestAgencyStatus;
+  createdShiftId: string | null;
+}
+
+export interface ShiftRequest {
+  id: string;
+  status: ShiftRequestStatus;
+  requiredQualification: Qualification;
+  startDate: string;
+  endDate: string | null;
+  startTime: string;
+  endTime: string;
+  addressLine: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  notes: string | null;
+  createdAt: string;
+  targetAgencies: ShiftRequestTargetAgency[];
+}
+
+export interface AgencyShiftRequestInbox {
+  id: string;
+  shiftRequestId: string;
+  status: ShiftRequestAgencyStatus;
+  requestStatus: ShiftRequestStatus;
+  homeUserId: string;
+  clientFirstName: string;
+  clientLastName: string;
+  requiredQualification: Qualification;
+  startDate: string;
+  endDate: string | null;
+  startTime: string;
+  endTime: string;
+  city: string | null;
+  zip: string | null;
+  notes: string | null;
+  createdAt: string;
+  createdShiftId: string | null;
+}
+
+export interface AgencyRosterEntry {
+  id: string;
+  agencyId: string;
+  agencyDisplayName: string;
+  caregiverProfileId: string;
+  caregiverFirstName: string;
+  caregiverLastName: string;
+  caregiverEmail: string;
+  status: AgencyCaregiverStatus;
+  inviteMessage: string | null;
+  invitedAt: string;
+  respondedAt: string | null;
+}

@@ -33,6 +33,9 @@ import type {
   AgencyMe,
   HomeAgencyConnection,
   SubscriptionPlan,
+  ShiftRequest,
+  AgencyShiftRequestInbox,
+  AgencyRosterEntry,
 } from "./types";
 
 const API_BASE_URL =
@@ -1012,5 +1015,83 @@ export function requestHomeAgencyConnection(agencyId: string, message?: string) 
 export function endHomeAgencyConnection(agencyId: string) {
   return request<void>(`/api/home/agencies/${agencyId}/connection`, {
     method: "DELETE",
+  });
+}
+
+export function createHomeShiftRequest(payload: {
+  requiredQualification: Qualification;
+  startDate: string;
+  endDate?: string;
+  startTime: string;
+  endTime: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  notes?: string;
+  agencyIds: string[];
+}) {
+  return request<ShiftRequest>("/api/home/shift-requests", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getHomeShiftRequests() {
+  return request<ShiftRequest[]>("/api/home/shift-requests");
+}
+
+export function getAgencyShiftRequestInbox() {
+  return request<AgencyShiftRequestInbox[]>("/api/agencies/me/shift-requests");
+}
+
+export function acceptAgencyShiftRequest(inboxId: string) {
+  return request<ShiftRequest>(`/api/agencies/me/shift-requests/${inboxId}/accept`, {
+    method: "POST",
+  });
+}
+
+export function declineAgencyShiftRequest(inboxId: string) {
+  return request<AgencyShiftRequestInbox>(
+    `/api/agencies/me/shift-requests/${inboxId}/decline`,
+    { method: "POST" },
+  );
+}
+
+export function getAgencyRoster() {
+  return request<AgencyRosterEntry[]>("/api/agencies/me/roster");
+}
+
+export function inviteAgencyRosterCaregiver(email: string, message?: string) {
+  return request<AgencyRosterEntry>("/api/agencies/me/roster/invite", {
+    method: "POST",
+    body: JSON.stringify({ email, message: message ?? null }),
+  });
+}
+
+export function suspendAgencyRosterMember(rosterId: string) {
+  return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/suspend`, {
+    method: "POST",
+  });
+}
+
+export function getAgencyShifts() {
+  return request<Shift[]>("/api/agencies/me/shifts");
+}
+
+export function assignAgencyShift(shiftId: string, caregiverProfileId: string) {
+  return request<ShiftClaim>(`/api/agencies/me/shifts/${shiftId}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ caregiverProfileId }),
+  });
+}
+
+export function getCaregiverRosterInvites() {
+  return request<AgencyRosterEntry[]>("/api/caregivers/me/roster-invites");
+}
+
+export function acceptCaregiverRosterInvite(id: string) {
+  return request<AgencyRosterEntry>(`/api/caregivers/me/roster-invites/${id}/accept`, {
+    method: "POST",
   });
 }
