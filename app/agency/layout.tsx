@@ -8,6 +8,7 @@ import {
   Link2,
   Settings,
   Users,
+  Wallet,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { RoleGuard } from "@/components/role-guard";
@@ -18,6 +19,7 @@ const NAV = [
   { href: "/agency/shifts", label: "Shifts", icon: ClipboardList },
   { href: "/agency/roster", label: "Roster", icon: Users },
   { href: "/agency/connections", label: "Home connections", icon: Link2 },
+  { href: "/agency/rates", label: "Rates", icon: Wallet },
   { href: "/agency/billing", label: "Billing", icon: CreditCard },
   { href: "/agency/settings", label: "Directory profile", icon: Settings },
 ];

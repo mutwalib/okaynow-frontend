@@ -36,6 +36,8 @@ import type {
   ShiftRequest,
   AgencyShiftRequestInbox,
   AgencyRosterEntry,
+  AgencyTenantSettings,
+  ConnectStatus,
 } from "./types";
 
 const API_BASE_URL =
@@ -996,6 +998,41 @@ export function createAgencyCheckoutSession(plan: SubscriptionPlan) {
     "/api/agencies/me/billing/checkout",
     { method: "POST", body: JSON.stringify({ plan }) },
   );
+}
+
+export function getAgencyConnectStatus() {
+  return request<ConnectStatus>("/api/agencies/me/billing/connect");
+}
+
+export function startAgencyConnectOnboarding() {
+  return request<{ onboardingUrl: string | null; message: string | null }>(
+    "/api/agencies/me/billing/connect/onboard",
+    { method: "POST" },
+  );
+}
+
+export function getAgencyTenantSettings() {
+  return request<AgencyTenantSettings>("/api/agencies/me/settings");
+}
+
+export function updateAgencyTenantSettings(payload: AgencyTenantSettings) {
+  return request<AgencyTenantSettings>("/api/agencies/me/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function downloadAgencyHoursExport(from: string, to: string) {
+  const token = getAccessToken();
+  const url = `${API_BASE_URL}/api/agencies/me/payroll/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(text || "Export failed", res.status);
+  }
+  return res.blob();
 }
 
 export function getHomeAgencyConnections() {

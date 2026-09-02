@@ -549,7 +549,34 @@ export interface AgencyMe {
   subscriptionPeriodEnd: string | null;
   directoryListed: boolean;
   stripeConfigured: boolean;
+  stripeConnectReady: boolean;
   subscriptionAllowsWrites: boolean;
+}
+
+export interface AgencyTenantSettings {
+  agencyTakePercent: number;
+  defaultPayRate: number;
+  payPeriodType: "WEEKLY" | "BIWEEKLY";
+  periodStartDay:
+    | "MONDAY"
+    | "TUESDAY"
+    | "WEDNESDAY"
+    | "THURSDAY"
+    | "FRIDAY"
+    | "SATURDAY"
+    | "SUNDAY";
+  autoInvoiceOnComplete: boolean;
+  autoInvoiceSendImmediately: boolean;
+  clientCaregiverRejectionFee: number;
+  platformConversionFee: number;
+}
+
+export interface ConnectStatus {
+  stripeConfigured: boolean;
+  hasConnectAccount: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  onboardingComplete: boolean;
 }
 
 export interface HomeAgencyConnection {
