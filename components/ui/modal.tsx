@@ -18,7 +18,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   onClose: () => void;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -36,6 +36,9 @@ export function Modal({
 
   if (!open || typeof document === "undefined") return null;
 
+  const width =
+    size === "sm" ? "max-w-sm" : size === "lg" ? "max-w-lg" : "max-w-md";
+
   return createPortal(
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
       <button
@@ -48,9 +51,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`relative z-[1] flex max-h-[min(100dvh-2rem,100%)] w-full flex-col animate-rise rounded-xl border border-line bg-paper shadow-xl ${
-          size === "sm" ? "max-w-sm" : "max-w-md"
-        }`}
+        className={`relative z-[1] flex max-h-[min(100dvh-2rem,100%)] w-full flex-col animate-rise rounded-xl border border-line bg-paper shadow-xl ${width}`}
       >
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
           <h2 id="modal-title" className="font-display text-xl text-ink">

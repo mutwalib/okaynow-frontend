@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Megaphone, Pencil, Store, Trash2 } from "lucide-react";
 import {
   closeShiftMarketplace,
   deleteShift,
+  getHomeAgencyConnections,
   getShift,
   markShiftNoShow,
   requestShiftReplacement,
@@ -38,6 +39,20 @@ export default function FacilityShiftDetailPage() {
     queryKey: ["shift", id],
     queryFn: () => getShift(id),
   });
+  const connections = useQuery({
+    queryKey: ["home-agency-connections"],
+    queryFn: getHomeAgencyConnections,
+  });
+  const coverageAgencies = useMemo(
+    () =>
+      (connections.data ?? [])
+        .filter((c) => c.status === "ACTIVE")
+        .map((c) => ({
+          agencyId: c.agencyId,
+          agencyDisplayName: c.agencyDisplayName,
+        })),
+    [connections.data],
+  );
   const remove = useMutation({
     mutationFn: () => deleteShift(id),
     onSuccess: () => {
@@ -48,13 +63,24 @@ export default function FacilityShiftDetailPage() {
     onError: (error: Error) => showToast(error.message, "error"),
   });
   const requestReplacement = useMutation({
-    mutationFn: (slots: number) =>
-      requestShiftReplacement(id, "Facility requested coverage", slots),
-    onSuccess: () => {
+    mutationFn: ({ slots, agencyIds }: { slots: number; agencyIds: string[] }) =>
+      requestShiftReplacement(
+        id,
+        "Facility requested coverage",
+        slots,
+        agencyIds,
+      ),
+    onSuccess: (_data, vars) => {
       setCoverageOpen(false);
       qc.invalidateQueries({ queryKey: ["shift", id] });
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
-      showToast("Opened for marketplace coverage", "success");
+      const n = vars.agencyIds.length;
+      showToast(
+        n === 1
+          ? "Sent to 1 connected agency"
+          : `Sent to ${n} connected agencies`,
+        "success",
+      );
     },
     onError: (error: Error) => showToast(error.message, "error"),
   });
@@ -151,10 +177,11 @@ export default function FacilityShiftDetailPage() {
           <p className="text-sm font-medium text-ink">
             {missing > 0
               ? `${missing} remaining slot(s) available to open`
-              : "Open marketplace replacements if needed"}
+              : "Request replacements from connected agencies"}
           </p>
           <p className="mt-1 text-sm text-ink-muted">
-            Opens this date only. Unopened remaining seats stay private.
+            Opens this date only. Choose which connected agencies should receive
+            the opening.
           </p>
           <Button
             className="mt-3"
@@ -165,6 +192,15 @@ export default function FacilityShiftDetailPage() {
             <Megaphone className="h-4 w-4" aria-hidden />
             Need coverage
           </Button>
+        </div>
+      ) : null}
+      {canManageCoverage && s.agencyCoverageRequested ? (
+        <div className="rounded-lg border border-warn/40 bg-warn/5 p-4">
+          <p className="text-sm font-medium text-ink">Sent to agencies</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Connected agencies can accept this opening from their shift request
+            inbox. You can send it to additional agencies if needed.
+          </p>
         </div>
       ) : null}
       {canManageCoverage && marketOpen > 0 ? (
@@ -228,9 +264,12 @@ export default function FacilityShiftDetailPage() {
               } satisfies MarketplaceCoverageDraft)
             : null
         }
+        connectedAgencies={coverageAgencies}
         busy={requestReplacement.isPending}
         onClose={() => setCoverageOpen(false)}
-        onConfirm={(slots) => requestReplacement.mutate(slots)}
+        onConfirm={(slots, agencyIds) =>
+          requestReplacement.mutate({ slots, agencyIds: agencyIds ?? [] })
+        }
       />
       <ConfirmModal
         open={closeOpen}

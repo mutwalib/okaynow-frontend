@@ -649,12 +649,14 @@ export function requestShiftReplacement(
   id: string,
   reason?: string,
   slots?: number,
+  agencyIds?: string[],
 ) {
   return request<Shift>(`/api/shifts/${id}/request-replacement`, {
     method: "POST",
     body: JSON.stringify({
       reason: reason || undefined,
       slots: slots ?? undefined,
+      agencyIds: agencyIds?.length ? agencyIds : undefined,
     }),
   });
 }

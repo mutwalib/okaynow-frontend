@@ -77,7 +77,7 @@ function FacilityNewShiftInner() {
         </h1>
         <p className="mt-1 text-sm text-ink-muted">
           {routine
-            ? "Ongoing every-day coverage (no end date). Open a day on the schedule to post it to the marketplace when you need coverage."
+            ? "Ongoing every-day coverage (no end date). Open a day on the schedule to send it to connected agencies when you need coverage."
             : "Coverage for your facility only. Your hourly bill rate is set by the agency and shown before you submit."}
         </p>
       </div>

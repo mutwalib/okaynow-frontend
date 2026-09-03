@@ -44,6 +44,7 @@ import { ConfirmModal } from "@/components/ui/modal";
 import { Field, Select } from "@/components/ui/field";
 import {
   MarketplaceCoverageModal,
+  type CoverageAgencyOption,
   type MarketplaceCoverageDraft,
 } from "@/components/marketplace-coverage-modal";
 
@@ -102,6 +103,7 @@ export function ScheduleCalendar({
   respectAgencyManaged = false,
   clientPickerLabel = "Home client",
   emptySiteMessage = "Select a connected home to view their schedule.",
+  coverageAgencies,
 }: {
   shiftBasePath: string;
   /** Path for creating a shift (query params appended). */
@@ -127,6 +129,8 @@ export function ScheduleCalendar({
   respectAgencyManaged?: boolean;
   clientPickerLabel?: string;
   emptySiteMessage?: string;
+  /** Facility schedule: route openings to these connected agencies. */
+  coverageAgencies?: CoverageAgencyOption[];
 }) {
   const router = useRouter();
   const qc = useQueryClient();
@@ -175,16 +179,26 @@ export function ScheduleCalendar({
       id,
       reason,
       slots,
+      agencyIds,
     }: {
       id: string;
       reason?: string;
       slots?: number;
-    }) => requestShiftReplacement(id, reason, slots),
-    onSuccess: () => {
+      agencyIds?: string[];
+    }) => requestShiftReplacement(id, reason, slots, agencyIds),
+    onSuccess: (_data, vars) => {
       setCoverageDraft(null);
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
       qc.invalidateQueries({ queryKey: ["shifts"] });
-      showToast("Opened for marketplace coverage", "success");
+      const n = vars.agencyIds?.length ?? 0;
+      showToast(
+        n > 0
+          ? n === 1
+            ? "Sent to 1 connected agency"
+            : `Sent to ${n} connected agencies`
+          : "Opened for marketplace coverage",
+        "success",
+      );
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
@@ -623,6 +637,7 @@ export function ScheduleCalendar({
                               shift.openSlots > 0 &&
                               !shift.marketplacePosted
                             }
+                            coverageToAgencies={coverageAgencies != null}
                             onOpenToRoster={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -764,12 +779,14 @@ export function ScheduleCalendar({
       <MarketplaceCoverageModal
         draft={coverageDraft}
         busy={replace.isPending}
+        connectedAgencies={coverageAgencies}
         onClose={() => setCoverageDraft(null)}
-        onConfirm={(slots) => {
+        onConfirm={(slots, agencyIds) => {
           if (!coverageDraft) return;
           replace.mutate({
             id: coverageDraft.shiftId,
             slots,
+            agencyIds,
             reason:
               coverageDraft.mode === "remaining"
                 ? "Coverage requested"
@@ -810,6 +827,7 @@ function PeriodStatusCard({
   onCloseMarketplace,
   showRosterSlots = false,
   canOpenToRoster = false,
+  coverageToAgencies = false,
   onOpenToRoster,
 }: {
   shift: ScheduleShiftCard;
@@ -829,12 +847,16 @@ function PeriodStatusCard({
   onCloseMarketplace: (e: React.MouseEvent) => void;
   showRosterSlots?: boolean;
   canOpenToRoster?: boolean;
+  coverageToAgencies?: boolean;
   onOpenToRoster?: (e: React.MouseEvent) => void;
 }) {
   const required = Math.max(1, shift.requiredHeadcount);
   const filled = shift.filledSlots;
   const missing = Math.max(0, required - filled);
-  const covered = missing === 0 && !shift.marketplacePosted;
+  const covered =
+    missing === 0 &&
+    !shift.marketplacePosted &&
+    !shift.agencyCoverageRequested;
   const routine = shift.scheduleType === "DAILY_ROUTINE";
   const remaining = Math.max(0, required - filled);
   const marketOpen = shift.marketplaceSlots ?? 0;
@@ -950,6 +972,8 @@ function PeriodStatusCard({
         ) : null}
         {shift.marketplacePosted && !past ? (
           <p className="text-[11px] text-warn">Marketplace open</p>
+        ) : shift.agencyCoverageRequested && !past ? (
+          <p className="text-[11px] text-warn">Sent to agencies</p>
         ) : covered && !past ? (
           <p className="text-[11px] text-ink-muted">Covered</p>
         ) : null}
@@ -1000,7 +1024,11 @@ function PeriodStatusCard({
               onClick={onRequestReplacement}
             >
               <Megaphone className="h-3 w-3" aria-hidden />
-              {filled === 0 ? "Need coverage" : "Call out → market"}
+              {filled === 0
+                ? "Need coverage"
+                : coverageToAgencies
+                  ? "Call out"
+                  : "Call out → market"}
             </Button>
           ) : null}
           {canClose ? (

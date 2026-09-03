@@ -43,8 +43,8 @@ export default function AgencyShiftRequestsPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Inbox</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Shift requests</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Care needs from connected homes. Accept to create a tenant shift, then assign
-          from your roster.
+          Care needs from connected homes and facilities. Accept to create a
+          tenant shift, then assign from your roster.
         </p>
       </section>
 
@@ -58,8 +58,15 @@ export default function AgencyShiftRequestsPage() {
         {inbox.data?.map((row) => (
           <article key={row.id} className="rounded-xl border border-border bg-white p-4">
             <p className="font-medium text-ink">
-              {row.clientFirstName} {row.clientLastName}
+              {row.fromFacility
+                ? row.facilityName || row.clientFirstName
+                : `${row.clientFirstName} ${row.clientLastName}`}
             </p>
+            {row.fromFacility ? (
+              <p className="text-xs uppercase tracking-wide text-ink-muted">
+                Facility
+              </p>
+            ) : null}
             <p className="text-sm text-ink-muted">
               {QUALIFICATION_LABELS[row.requiredQualification]} · {row.startDate}{" "}
               {row.startTime.slice(0, 5)}–{row.endTime.slice(0, 5)}

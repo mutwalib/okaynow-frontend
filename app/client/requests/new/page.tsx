@@ -135,6 +135,24 @@ export default function NewShiftRequestPage() {
         </Field>
         <fieldset>
           <legend className="text-sm font-medium text-ink">Send to agencies</legend>
+          <div className="mt-2 flex gap-3 text-sm">
+            <button
+              type="button"
+              className="text-brand underline-offset-2 hover:underline"
+              onClick={() =>
+                setSelectedAgencies(activeAgencies.map((a) => a.agencyId))
+              }
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              className="text-ink-muted underline-offset-2 hover:underline"
+              onClick={() => setSelectedAgencies([])}
+            >
+              Clear
+            </button>
+          </div>
           <div className="mt-2 space-y-2">
             {activeAgencies.map((a) => (
               <label key={a.agencyId} className="flex items-center gap-2 text-sm">

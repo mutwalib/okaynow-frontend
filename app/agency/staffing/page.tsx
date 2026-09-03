@@ -51,8 +51,9 @@ export default function AgencyStaffingPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Operations</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Shift routing & limits</h1>
         <p className="mt-2 max-w-2xl text-ink-muted">
-          Control how home care requests reach your caregivers, how many open shifts
-          they can hold, and travel time between visits at different homes.
+          Control how home and facility openings reach your caregivers after you
+          accept them, how many open shifts they can hold, and travel time between
+          visits at different sites.
         </p>
       </section>
 
@@ -60,8 +61,14 @@ export default function AgencyStaffingPage() {
         <section className="space-y-3 rounded-xl border border-border bg-white p-5">
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-brand" aria-hidden />
-            <h2 className="font-display text-lg text-ink">Incoming home requests</h2>
+            <h2 className="font-display text-lg text-ink">
+              After you accept a request
+            </h2>
           </div>
+          <p className="text-sm text-ink-muted">
+            Homes and facilities choose which agencies receive an opening. Your
+            setting below controls what happens once you accept it.
+          </p>
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4">
             <input
               type="radio"
@@ -72,8 +79,8 @@ export default function AgencyStaffingPage() {
             <span>
               <span className="font-medium text-ink">Inbox first (recommended)</span>
               <span className="mt-1 block text-sm text-ink-muted">
-                Accepted requests land in your shift inbox. You broadcast to roster
-                caregivers in the area or assign someone specific.
+                Accepted openings stay on your shift board as drafts. You broadcast
+                to roster caregivers in the area or assign someone specific.
               </span>
             </span>
           </label>
@@ -87,9 +94,9 @@ export default function AgencyStaffingPage() {
             <span>
               <span className="font-medium text-ink">Auto-broadcast to area roster</span>
               <span className="mt-1 block text-sm text-ink-muted">
-                When you accept a home request, the shift is posted immediately to
-                active roster caregivers within their service radius — they can pick
-                it up in real time.
+                When you accept a home or facility opening, the shift is posted
+                immediately to active roster caregivers within their service radius —
+                they can pick it up in real time.
               </span>
             </span>
           </label>

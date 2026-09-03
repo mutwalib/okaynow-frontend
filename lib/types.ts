@@ -236,6 +236,8 @@ export interface Shift {
   /** Extra $/hr when facility escalation surge is active. */
   surgeBonusPay?: number;
   surgeTierApplied?: number;
+  /** Facility opening was sent to connected agencies. */
+  agencyCoverageRequested?: boolean;
   createdBy: string;
   createdAt: string;
 }
@@ -303,6 +305,7 @@ export interface ScheduleShiftCard {
   notes: string | null;
   roster: ScheduleRosterSlot[];
   agencyManaged?: boolean;
+  agencyCoverageRequested?: boolean;
 }
 
 export interface ScheduleDay {
@@ -725,6 +728,9 @@ export interface AgencyShiftRequestInbox {
   notes: string | null;
   createdAt: string;
   createdShiftId: string | null;
+  fromFacility?: boolean;
+  facilityName?: string | null;
+  requiredHeadcount?: number;
 }
 
 export interface AgencyRosterEntry {
