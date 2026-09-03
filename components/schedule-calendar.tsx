@@ -24,6 +24,7 @@ import {
   getMyCaregiverRoster,
   getMyClientProfile,
   getScheduleCalendar,
+  broadcastAgencyShift,
   requestShiftReplacement,
 } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
@@ -203,8 +204,23 @@ export function ScheduleCalendar({
     onSuccess: () => {
       setCloseShiftId(null);
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
+      qc.invalidateQueries({ queryKey: ["agency-schedule-calendar"] });
       qc.invalidateQueries({ queryKey: ["shifts"] });
       showToast("Marketplace openings closed", "success");
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
+
+  const openToRoster = useMutation({
+    mutationFn: (id: string) => broadcastAgencyShift(id),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
+      qc.invalidateQueries({ queryKey: ["agency-schedule-calendar"] });
+      qc.invalidateQueries({ queryKey: ["agency-shifts"] });
+      showToast(
+        `Opened to ${result.recipientsNotified} roster caregiver(s) in the service area`,
+        "success",
+      );
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
@@ -597,8 +613,21 @@ export function ScheduleCalendar({
                               replace.isPending ||
                               remove.isPending ||
                               closeMarket.isPending ||
-                              assign.isPending
+                              assign.isPending ||
+                              openToRoster.isPending
                             }
+                            canOpenToRoster={
+                              respectAgencyManaged &&
+                              !!shift.agencyManaged &&
+                              !past &&
+                              shift.openSlots > 0 &&
+                              !shift.marketplacePosted
+                            }
+                            onOpenToRoster={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openToRoster.mutate(shift.id);
+                            }}
                             onRequestReplacement={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -780,6 +809,8 @@ function PeriodStatusCard({
   onDelete,
   onCloseMarketplace,
   showRosterSlots = false,
+  canOpenToRoster = false,
+  onOpenToRoster,
 }: {
   shift: ScheduleShiftCard;
   href: string;
@@ -797,6 +828,8 @@ function PeriodStatusCard({
   onDelete: (e: React.MouseEvent) => void;
   onCloseMarketplace: (e: React.MouseEvent) => void;
   showRosterSlots?: boolean;
+  canOpenToRoster?: boolean;
+  onOpenToRoster?: (e: React.MouseEvent) => void;
 }) {
   const required = Math.max(1, shift.requiredHeadcount);
   const filled = shift.filledSlots;
@@ -943,6 +976,19 @@ function PeriodStatusCard({
               <Trash2 className="h-3 w-3" aria-hidden />
               Delete
             </button>
+          ) : null}
+          {canOpenToRoster ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="w-full"
+              disabled={busy}
+              onClick={onOpenToRoster}
+            >
+              <Megaphone className="h-3 w-3" aria-hidden />
+              Open to roster
+            </Button>
           ) : null}
           {actionable ? (
             <Button

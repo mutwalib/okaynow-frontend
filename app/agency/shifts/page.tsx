@@ -78,9 +78,10 @@ export default function AgencyShiftsPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Schedule</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Agency shifts</h1>
         <p className="mt-2 max-w-2xl text-ink-muted">
-          Shifts from accepted home requests. Broadcast to roster caregivers in the
-          service area so they can pick shifts in real time, invite specific people,
-          or assign directly.
+          Shifts opened for coverage or already assigned, including accepted home
+          requests. Broadcast to roster caregivers in the service area so they can
+          pick shifts in real time, invite specific people, or assign directly.
+          Drafts on Home schedules stay there until you open them.
         </p>
       </section>
 
@@ -88,7 +89,8 @@ export default function AgencyShiftsPage() {
         {shifts.isLoading ? <p className="text-ink-muted">Loading…</p> : null}
         {!shifts.isLoading && (shifts.data?.length ?? 0) === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-white p-8 text-center text-ink-muted">
-            No agency shifts yet. Accept a home request from the inbox.
+            No open or assigned shifts yet. Accept a home request from the inbox,
+            or open a Home schedule draft to your roster.
           </p>
         ) : null}
         {shifts.data?.map((s) => {
