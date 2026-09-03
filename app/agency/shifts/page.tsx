@@ -94,7 +94,14 @@ export default function AgencyShiftsPage() {
             or open a Home schedule draft to your roster.
           </p>
         ) : null}
-        {shifts.data?.map((s) => {
+        {shifts.data
+          ?.slice()
+          .sort((a, b) => {
+            const date = a.date.localeCompare(b.date);
+            if (date !== 0) return date;
+            return (a.startTime ?? "").localeCompare(b.startTime ?? "");
+          })
+          .map((s) => {
           const needsStaff = s.filledSlots < s.requiredHeadcount;
           const isOpen = s.status === "OPEN" && s.marketplacePosted;
           return (
