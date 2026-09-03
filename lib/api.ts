@@ -17,6 +17,7 @@ import type {
   PagedResponse,
   Qualification,
   Shift,
+  AgencyShift,
   ShiftClaim,
   ShiftScheduleType,
   ScheduleDay,
@@ -1238,11 +1239,26 @@ export function uploadCaregiverCv(file: File) {
 }
 
 export function getAgencyShifts() {
-  return request<Shift[]>("/api/agencies/me/shifts");
+  return request<Array<AgencyShift & { shift?: Shift }>>(
+    "/api/agencies/me/shifts",
+  ).then((rows) =>
+    rows.map((row) =>
+      row.shift?.id
+        ? { ...row.shift, assignments: row.assignments ?? [] }
+        : { ...row, assignments: row.assignments ?? [] },
+    ),
+  );
 }
 
 export function assignAgencyShift(shiftId: string, caregiverProfileId: string) {
   return request<ShiftClaim>(`/api/agencies/me/shifts/${shiftId}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ caregiverProfileId }),
+  });
+}
+
+export function unassignAgencyShift(shiftId: string, caregiverProfileId: string) {
+  return request<ShiftClaim>(`/api/agencies/me/shifts/${shiftId}/unassign`, {
     method: "POST",
     body: JSON.stringify({ caregiverProfileId }),
   });

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Megaphone, UserPlus } from "lucide-react";
+import { Megaphone, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
 import {
@@ -10,7 +10,9 @@ import {
   broadcastAgencyShift,
   getAgencyRoster,
   getAgencyShifts,
+  unassignAgencyShift,
 } from "@/lib/api";
+import { confirmAction } from "@/lib/confirm";
 import { useToast } from "@/lib/toast-context";
 import { formatDate } from "@/lib/format";
 import { QUALIFICATION_LABELS } from "@/lib/types";
@@ -42,6 +44,22 @@ export default function AgencyShiftsPage() {
       setAssigningShiftId(null);
       setCaregiverId("");
       queryClient.invalidateQueries({ queryKey: ["agency-shifts"] });
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
+
+  const unassign = useMutation({
+    mutationFn: ({
+      shiftId,
+      caregiverProfileId,
+    }: {
+      shiftId: string;
+      caregiverProfileId: string;
+    }) => unassignAgencyShift(shiftId, caregiverProfileId),
+    onSuccess: () => {
+      showToast("Caregiver unassigned", "success");
+      queryClient.invalidateQueries({ queryKey: ["agency-shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["agency-schedule-calendar"] });
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
@@ -102,8 +120,15 @@ export default function AgencyShiftsPage() {
             return (a.startTime ?? "").localeCompare(b.startTime ?? "");
           })
           .map((s) => {
-          const needsStaff = s.filledSlots < s.requiredHeadcount;
+          const needsStaff = (s.filledSlots ?? 0) < (s.requiredHeadcount ?? 1);
           const isOpen = s.status === "OPEN" && s.marketplacePosted;
+          const assignments = s.assignments ?? [];
+          const canUnassign =
+            assignments.length > 0 &&
+            s.status !== "IN_PROGRESS" &&
+            s.status !== "COMPLETED" &&
+            s.status !== "CANCELLED" &&
+            s.status !== "NO_SHOW";
           return (
             <article key={s.id} className="rounded-xl border border-border bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -117,6 +142,44 @@ export default function AgencyShiftsPage() {
                     {isOpen ? " · open to roster" : ""}
                     · {s.filledSlots}/{s.requiredHeadcount} filled
                   </p>
+                  {assignments.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {assignments.map((a) => (
+                        <li
+                          key={a.claimId}
+                          className="flex flex-wrap items-center gap-2 text-sm text-ink"
+                        >
+                          <span>
+                            {a.firstName} {a.lastName}
+                            <span className="text-ink-muted"> · {a.status.toLowerCase()}</span>
+                          </span>
+                          {canUnassign ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={unassign.isPending}
+                              onClick={() => {
+                                if (
+                                  !confirmAction(
+                                    `Unassign ${a.firstName} ${a.lastName} from this shift?`,
+                                  )
+                                ) {
+                                  return;
+                                }
+                                unassign.mutate({
+                                  shiftId: s.id,
+                                  caregiverProfileId: a.caregiverProfileId,
+                                });
+                              }}
+                            >
+                              <UserMinus className="h-3.5 w-3.5" aria-hidden />
+                              Unassign
+                            </Button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
 

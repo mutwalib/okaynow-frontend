@@ -240,6 +240,18 @@ export interface Shift {
   createdAt: string;
 }
 
+export interface AgencyShiftAssignment {
+  claimId: string;
+  caregiverProfileId: string;
+  firstName: string;
+  lastName: string;
+  status: ShiftClaimStatus;
+}
+
+export interface AgencyShift extends Shift {
+  assignments: AgencyShiftAssignment[];
+}
+
 export type ShiftClaimStatus =
   | "PENDING"
   | "CONFIRMED"
