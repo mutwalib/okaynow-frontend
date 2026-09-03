@@ -262,11 +262,14 @@ export interface AssignedCaregiver {
 
 export interface ScheduleRosterSlot {
   claimId: string;
-  caregiverProfileId: string;
-  firstName: string;
-  lastName: string;
+  caregiverProfileId: string | null;
+  firstName: string | null;
+  lastName: string | null;
   status: ShiftClaimStatus;
   source: "MARKETPLACE" | "ASSIGNED" | "INVITE";
+  profilePhotoUrl: string | null;
+  masked: boolean;
+  displayLabel: string | null;
 }
 
 export interface ScheduleShiftCard {
@@ -287,6 +290,7 @@ export interface ScheduleShiftCard {
   needsCoverage: boolean;
   notes: string | null;
   roster: ScheduleRosterSlot[];
+  agencyManaged?: boolean;
 }
 
 export interface ScheduleDay {
@@ -614,6 +618,8 @@ export interface HomeAgencyConnection {
   agencyDisplayName: string;
   agencyCity: string | null;
   agencyState: string | null;
+  homeUserId: string;
+  clientProfileId: string | null;
   homeFirstName: string | null;
   homeLastName: string | null;
   status: ConnectionStatus;

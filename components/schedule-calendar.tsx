@@ -13,6 +13,8 @@ import {
   Plus,
   Store,
   Trash2,
+  UserRound,
+  UserRoundX,
 } from "lucide-react";
 import {
   closeShiftMarketplace,
@@ -26,6 +28,7 @@ import {
 } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import { formatDate, formatShiftWindow, toIsoDate } from "@/lib/format";
+import { mediaUrl } from "@/lib/api";
 import { canDeleteShift, canEditShift } from "@/lib/shift-mutability";
 import { isPastShiftClockInWindow } from "@/lib/shift-window";
 import type {
@@ -37,6 +40,7 @@ import { useToast } from "@/lib/toast-context";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badges";
 import { ConfirmModal } from "@/components/ui/modal";
+import { Field, Select } from "@/components/ui/field";
 import {
   MarketplaceCoverageModal,
   type MarketplaceCoverageDraft,
@@ -88,6 +92,13 @@ export function ScheduleCalendar({
   enableRosterDrag = false,
   canEdit = false,
   canDelete = false,
+  clients,
+  selectedClientId = "",
+  onClientChange,
+  fetchCalendar,
+  showRosterSlots = false,
+  calendarHint,
+  respectAgencyManaged = false,
 }: {
   shiftBasePath: string;
   /** Path for creating a shift (query params appended). */
@@ -97,6 +108,20 @@ export function ScheduleCalendar({
   enableRosterDrag?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  /** Agency/admin: pick a connected home client. */
+  clients?: { value: string; label: string }[];
+  selectedClientId?: string;
+  onClientChange?: (clientProfileId: string) => void;
+  fetchCalendar?: (
+    from: string,
+    to: string,
+    clientProfileId?: string,
+  ) => Promise<import("@/lib/types").ScheduleDay[]>;
+  /** Show caregiver names/photos on shift cards (agency view masks others). */
+  showRosterSlots?: boolean;
+  calendarHint?: string;
+  /** Agency calendar: only agency-created shifts are editable. */
+  respectAgencyManaged?: boolean;
 }) {
   const router = useRouter();
   const qc = useQueryClient();
@@ -115,8 +140,17 @@ export function ScheduleCalendar({
     STANDARD_WINDOWS.find((w) => w.id === windowId) ?? STANDARD_WINDOWS[2];
 
   const calendar = useQuery({
-    queryKey: ["schedule-calendar", from, to],
-    queryFn: () => getScheduleCalendar(from, to),
+    queryKey: [
+      fetchCalendar ? "agency-schedule-calendar" : "schedule-calendar",
+      from,
+      to,
+      selectedClientId,
+    ],
+    queryFn: () =>
+      fetchCalendar
+        ? fetchCalendar(from, to, selectedClientId || undefined)
+        : getScheduleCalendar(from, to),
+    enabled: !fetchCalendar || !!selectedClientId,
   });
 
   const profile = useQuery({
@@ -282,12 +316,28 @@ export function ScheduleCalendar({
             Week of {weekLabel}
           </p>
           <p className="text-sm text-ink-muted">
-            {enableRosterDrag
-              ? "Past days are history only. Coverage stays filled until you open a day to the marketplace."
-              : "Past days are history only. Request coverage only when you need the marketplace."}
+            {calendarHint ??
+              (enableRosterDrag
+                ? "Past days are history only. Coverage stays filled until you open a day to the marketplace."
+                : "Past days are history only. Request coverage only when you need the marketplace.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {clients && clients.length > 0 ? (
+            <Field label="Home client" className="min-w-[220px]">
+              <Select
+                value={selectedClientId}
+                onChange={(e) => onClientChange?.(e.target.value)}
+              >
+                <option value="">Select a connected home…</option>
+                {clients.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
           {enableRosterDrag ? (
             <select
               className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
@@ -335,7 +385,11 @@ export function ScheduleCalendar({
         </div>
       </div>
 
-      {calendar.isLoading ? (
+      {fetchCalendar && !selectedClientId ? (
+        <p className="text-sm text-ink-muted">
+          Select a connected home to view their schedule.
+        </p>
+      ) : calendar.isLoading ? (
         <p className="text-sm text-ink-muted">Loading schedule…</p>
       ) : calendar.isError ? (
         <p className="text-sm text-danger">Could not load schedule.</p>
@@ -459,6 +513,7 @@ export function ScheduleCalendar({
                             href={`${shiftBasePath}/${shift.id}`}
                             editHref={
                               canEdit &&
+                              (!respectAgencyManaged || shift.agencyManaged) &&
                               !past &&
                               canEditShift({
                                 date: day.date,
@@ -527,6 +582,7 @@ export function ScheduleCalendar({
                             }
                             canDelete={
                               canDelete &&
+                              (!respectAgencyManaged || shift.agencyManaged) &&
                               !past &&
                               canDeleteShift({
                                 date: day.date,
@@ -587,6 +643,7 @@ export function ScheduleCalendar({
                               e.stopPropagation();
                               setCloseShiftId(shift.id);
                             }}
+                            showRosterSlots={showRosterSlots}
                           />
                         </li>
                         );
@@ -718,6 +775,7 @@ function PeriodStatusCard({
   onRequestReplacement,
   onDelete,
   onCloseMarketplace,
+  showRosterSlots = false,
 }: {
   shift: ScheduleShiftCard;
   href: string;
@@ -734,6 +792,7 @@ function PeriodStatusCard({
   onRequestReplacement: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
   onCloseMarketplace: (e: React.MouseEvent) => void;
+  showRosterSlots?: boolean;
 }) {
   const required = Math.max(1, shift.requiredHeadcount);
   const filled = shift.filledSlots;
@@ -809,6 +868,49 @@ function PeriodStatusCard({
             <span className="text-ink-muted"> · filled</span>
           )}
         </p>
+        {showRosterSlots ? (
+          <ul className="space-y-1 pt-0.5">
+            {shift.roster.map((slot) => (
+              <li key={slot.claimId} className="flex items-center gap-1.5">
+                {slot.masked ? (
+                  <>
+                    <UserRoundX className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                    <span className="truncate text-ink-muted">
+                      {slot.displayLabel ?? "Occupied by other"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {slot.profilePhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={mediaUrl(slot.profilePhotoUrl) ?? slot.profilePhotoUrl}
+                        alt=""
+                        className="h-5 w-5 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                    )}
+                    <span className="truncate">
+                      {slot.firstName} {slot.lastName}
+                    </span>
+                  </>
+                )}
+              </li>
+            ))}
+            {Array.from({ length: missing }).map((_, i) => (
+              <li
+                key={`open-${i}`}
+                className={`flex items-center gap-1.5 ${
+                  shift.marketplacePosted ? "text-warn" : "text-ink-muted"
+                }`}
+              >
+                <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {shift.marketplacePosted ? "Open slot" : "Unfilled"}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {shift.marketplacePosted && !past ? (
           <p className="text-[11px] text-warn">Marketplace open</p>
         ) : covered && !past ? (

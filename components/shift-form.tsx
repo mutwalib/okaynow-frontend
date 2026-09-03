@@ -50,7 +50,32 @@ const schema = z
     },
   );
 
+const agencySchema = z
+  .object({
+    requiredQualification: z.enum(["CNA", "HHA", "PCA", "LPN", "RN", "MAP", "OTHER"]),
+    scheduleType: z.enum(["ONE_OFF", "DAILY_ROUTINE"]),
+    date: z.string().optional(),
+    startTime: z.string().min(1, "Start time is required"),
+    endTime: z.string().min(1, "End time is required"),
+    requiredHeadcount: z.coerce
+      .number({ invalid_type_error: "Caregivers needed is required" })
+      .int()
+      .min(1, "At least 1 caregiver")
+      .max(50, "Maximum 50 caregivers"),
+    notes: z.string().optional(),
+  })
+  .refine((d) => d.endTime !== d.startTime, {
+    message: "End time must differ from start time",
+    path: ["endTime"],
+  })
+  .refine((d) => d.scheduleType !== "ONE_OFF" || !!d.date, {
+    message: "Date is required",
+    path: ["date"],
+  });
+
 export type ShiftFormValues = z.infer<typeof schema>;
+
+export type AgencyShiftFormValues = z.infer<typeof agencySchema>;
 
 export function ShiftForm({
   defaultValues,
@@ -58,6 +83,7 @@ export function ShiftForm({
   submitIcon: SubmitIcon,
   showRosterAssign = true,
   mode = "create",
+  forAgency = false,
   onSubmit,
 }: {
   defaultValues?: Partial<ShiftFormValues>;
@@ -67,11 +93,14 @@ export function ShiftForm({
   showRosterAssign?: boolean;
   /** Edit mode always shows the instance date (including daily-routine days). */
   mode?: "create" | "edit";
-  onSubmit: (values: ShiftFormValues) => Promise<void>;
+  /** Agency posts for a connected home — address and rates are server-side. */
+  forAgency?: boolean;
+  onSubmit: (values: ShiftFormValues | AgencyShiftFormValues) => Promise<void>;
 }) {
   const rates = useQuery({
     queryKey: ["client-rates"],
     queryFn: getClientRates,
+    enabled: !forAgency,
   });
 
   const {
@@ -80,24 +109,35 @@ export function ShiftForm({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<ShiftFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      requiredQualification: "CNA",
-      scheduleType: "ONE_OFF",
-      state: DEFAULT_STATE,
-      startTime: "09:00",
-      endTime: "17:00",
-      date: "",
-      addressLine: "",
-      city: "",
-      zip: "",
-      requiredHeadcount: 1,
-      assignFromRoster: true,
-      notes: "",
-      ...defaultValues,
-      state: DEFAULT_STATE,
-    },
+  } = useForm<ShiftFormValues | AgencyShiftFormValues>({
+    resolver: zodResolver(forAgency ? agencySchema : schema),
+    defaultValues: forAgency
+      ? {
+          requiredQualification: "CNA",
+          scheduleType: "ONE_OFF",
+          startTime: "09:00",
+          endTime: "17:00",
+          date: "",
+          requiredHeadcount: 1,
+          notes: "",
+          ...defaultValues,
+        }
+      : {
+          requiredQualification: "CNA",
+          scheduleType: "ONE_OFF",
+          state: DEFAULT_STATE,
+          startTime: "09:00",
+          endTime: "17:00",
+          date: "",
+          addressLine: "",
+          city: "",
+          zip: "",
+          requiredHeadcount: 1,
+          assignFromRoster: true,
+          notes: "",
+          ...defaultValues,
+          state: DEFAULT_STATE,
+        },
   });
 
   const scheduleType = watch("scheduleType");
@@ -113,7 +153,11 @@ export function ShiftForm({
   return (
     <form
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit({ ...values, state: DEFAULT_STATE });
+        if (forAgency) {
+          await onSubmit(values);
+        } else {
+          await onSubmit({ ...values, state: DEFAULT_STATE } as ShiftFormValues);
+        }
       })}
       className="space-y-5"
     >
@@ -159,58 +203,66 @@ export function ShiftForm({
       ) : null}
       {scheduleType === "DAILY_ROUTINE" && !editing ? (
         <p className="text-xs text-ink-muted">
-          Ongoing every day at these hours — no end date. Days are filled from
-          your roster by default. If someone calls out, open that day on the
-          schedule to post it to the marketplace for that date only.
+          {forAgency
+            ? "Ongoing every day at these hours — no end date. Assign caregivers from your roster on the Shifts page."
+            : "Ongoing every day at these hours — no end date. Days are filled from your roster by default. If someone calls out, open that day on the schedule to post it to the marketplace for that date only."}
         </p>
       ) : null}
 
-      <Field label="Street address" error={errors.addressLine?.message}>
-        <Input placeholder="123 Main St" {...register("addressLine")} />
-      </Field>
+      {!forAgency ? (
+        <>
+          <Field label="Street address" error={errors.addressLine?.message}>
+            <Input placeholder="123 Main St" {...register("addressLine")} />
+          </Field>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="City" error={errors.city?.message}>
-          <Input {...register("city")} />
-        </Field>
-        <Field label="State" error={errors.state?.message}>
-          <Input
-            readOnly
-            title={`OkayNow currently operates in ${SERVICE_REGION_LABEL} only`}
-            {...register("state")}
-            value={DEFAULT_STATE}
-          />
-          <span className="block text-xs text-ink-muted">
-            {SERVICE_REGION_LABEL} only — more states later
-          </span>
-        </Field>
-        <Field label="ZIP" error={errors.zip?.message}>
-          <Input
-            inputMode="numeric"
-            placeholder="02108"
-            {...register("zip")}
-          />
-        </Field>
-      </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="City" error={errors.city?.message}>
+              <Input {...register("city")} />
+            </Field>
+            <Field label="State" error={errors.state?.message}>
+              <Input
+                readOnly
+                title={`OkayNow currently operates in ${SERVICE_REGION_LABEL} only`}
+                {...register("state")}
+                value={DEFAULT_STATE}
+              />
+              <span className="block text-xs text-ink-muted">
+                {SERVICE_REGION_LABEL} only — more states later
+              </span>
+            </Field>
+            <Field label="ZIP" error={errors.zip?.message}>
+              <Input
+                inputMode="numeric"
+                placeholder="02108"
+                {...register("zip")}
+              />
+            </Field>
+          </div>
 
-      <div className="rounded-md border border-line bg-canvas/40 px-3 py-3 text-sm">
-        <p className="font-medium text-ink">Your bill rate</p>
-        {rates.isLoading ? (
-          <p className="mt-1 text-ink-muted">Loading agency rate…</p>
-        ) : rates.isError || billRate == null || !Number.isFinite(billRate) ? (
-          <p className="mt-1 text-danger">Could not load agency bill rate.</p>
-        ) : (
-          <>
-            <p className="mt-1 text-lg tabular-nums text-ink">
-              {formatMoney(billRate)}
-              <span className="text-sm font-normal text-ink-muted">/hr</span>
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              Set by the agency. Not editable here.
-            </p>
-          </>
-        )}
-      </div>
+          <div className="rounded-md border border-line bg-canvas/40 px-3 py-3 text-sm">
+            <p className="font-medium text-ink">Your bill rate</p>
+            {rates.isLoading ? (
+              <p className="mt-1 text-ink-muted">Loading agency rate…</p>
+            ) : rates.isError || billRate == null || !Number.isFinite(billRate) ? (
+              <p className="mt-1 text-danger">Could not load agency bill rate.</p>
+            ) : (
+              <>
+                <p className="mt-1 text-lg tabular-nums text-ink">
+                  {formatMoney(billRate)}
+                  <span className="text-sm font-normal text-ink-muted">/hr</span>
+                </p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Set by the agency. Not editable here.
+                </p>
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        <p className="text-xs text-ink-muted">
+          Uses the home&apos;s service address and your agency rate card.
+        </p>
+      )}
 
       <Field
         label="Caregivers needed"
@@ -228,7 +280,7 @@ export function ShiftForm({
         </span>
       </Field>
 
-      {scheduleType === "DAILY_ROUTINE" && showRosterAssign && !editing ? (
+      {scheduleType === "DAILY_ROUTINE" && showRosterAssign && !editing && !forAgency ? (
         <label className="flex cursor-pointer items-start gap-2 rounded-md border border-line bg-canvas/40 px-3 py-2.5 text-sm">
           <input
             type="checkbox"
@@ -262,7 +314,10 @@ export function ShiftForm({
 
       <Button
         type="submit"
-        disabled={isSubmitting || rates.isLoading || rates.isError}
+        disabled={
+          isSubmitting ||
+          (!forAgency && (rates.isLoading || rates.isError))
+        }
         size="lg"
       >
         {SubmitIcon && !isSubmitting ? (

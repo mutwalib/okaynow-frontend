@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CalendarDays,
   ClipboardList,
   CreditCard,
   House,
@@ -18,6 +19,7 @@ import { RoleGuard } from "@/components/role-guard";
 const NAV = [
   { href: "/agency", label: "Overview", icon: House },
   { href: "/agency/shift-requests", label: "Shift requests", icon: ClipboardList },
+  { href: "/agency/schedule", label: "Home schedules", icon: CalendarDays },
   { href: "/agency/shifts", label: "Shifts", icon: ClipboardList },
   { href: "/agency/staffing", label: "Staffing", icon: Radio },
   { href: "/agency/roster", label: "Roster", icon: Users },

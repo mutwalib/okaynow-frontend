@@ -576,9 +576,50 @@ export function createShift(payload: CreateShiftPayload) {
   });
 }
 
-export function getScheduleCalendar(from: string, to: string) {
+export function getScheduleCalendar(
+  from: string,
+  to: string,
+  clientProfileId?: string,
+  facilityProfileId?: string,
+) {
   const params = new URLSearchParams({ from, to });
+  if (clientProfileId) params.set("clientProfileId", clientProfileId);
+  if (facilityProfileId) params.set("facilityProfileId", facilityProfileId);
   return request<ScheduleDay[]>(`/api/schedule/calendar?${params}`);
+}
+
+export interface AgencyClientShiftPayload {
+  requiredQualification: Qualification;
+  date?: string;
+  endDate?: string;
+  scheduleType?: ShiftScheduleType;
+  startTime: string;
+  endTime: string;
+  notes?: string;
+  requiredHeadcount?: number;
+  assignFromRoster?: boolean;
+}
+
+export function getAgencyScheduleCalendar(
+  from: string,
+  to: string,
+  clientProfileId: string,
+) {
+  const params = new URLSearchParams({ from, to, clientProfileId });
+  return request<ScheduleDay[]>(`/api/agencies/me/schedule/calendar?${params}`);
+}
+
+export function createAgencyClientShift(
+  clientProfileId: string,
+  payload: AgencyClientShiftPayload,
+) {
+  return request<CreateShiftResponse>(
+    `/api/agencies/me/clients/${clientProfileId}/shifts`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function requestShiftReplacement(
