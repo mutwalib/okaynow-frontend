@@ -102,7 +102,14 @@ function LoginForm() {
 
         <p className="mt-6 text-sm text-ink-muted">
           New here?{" "}
-          <Link href="/register" className="font-medium text-brand-deep underline">
+          <Link
+            href={
+              params.get("next")
+                ? `/register?next=${encodeURIComponent(params.get("next")!)}`
+                : "/register"
+            }
+            className="font-medium text-brand-deep underline"
+          >
             Create an account
           </Link>
           {" · "}

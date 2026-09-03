@@ -41,12 +41,11 @@ export default function AgencyConnectionsPage() {
     <div className="space-y-8">
       <section>
         <p className="text-sm font-medium uppercase tracking-wide text-brand">
-          Homes
+          Homes &amp; facilities
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink">Connection requests</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Accept families who want to work with your agency. Shift routing
-          (Phase B) will use active connections only.
+          Accept families and facility sites that want to work with your agency.
         </p>
       </section>
 
@@ -67,7 +66,7 @@ export default function AgencyConnectionsPage() {
             <div>
               <p className="font-medium text-ink">
                 {[c.homeFirstName, c.homeLastName].filter(Boolean).join(" ") ||
-                  "Home account"}
+                  "Connected account"}
               </p>
               <p className="text-sm text-ink-muted">
                 {CONNECTION_STATUS_LABEL[c.status]}

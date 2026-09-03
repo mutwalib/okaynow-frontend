@@ -9,7 +9,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { LegalAcceptanceGate } from "@/components/legal-acceptance-gate";
 import { useAuth } from "@/lib/auth-context";
-import { ROLE_LABEL, type UserRole } from "@/lib/types";
+import { ROLE_HOME, ROLE_LABEL, type UserRole } from "@/lib/types";
 import { Button } from "./ui/button";
 
 export interface NavItem {
@@ -57,14 +57,14 @@ export function AppShell({
     });
   }
 
+  const homeHref = ROLE_HOME[role];
+
   function isActive(href: string) {
-    if (href === `/${role.toLowerCase()}`) {
+    if (href === homeHref) {
       return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
-
-  const homeHref = `/${role.toLowerCase()}`;
   const sidebarWidth = !ready || !collapsed ? "md:w-56" : "md:w-16";
   const contentOffset = !ready || !collapsed ? "md:pl-56" : "md:pl-16";
 

@@ -70,9 +70,10 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      router.replace(homePathForUser(user));
+      const next = params.get("next");
+      router.replace(next || homePathForUser(user));
     }
-  }, [isAuthenticated, isLoading, router, user]);
+  }, [isAuthenticated, isLoading, params, router, user]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -449,7 +450,14 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
 
         <p className="mt-6 text-sm text-ink-muted">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-brand-deep underline">
+          <Link
+            href={
+              params.get("next")
+                ? `/login?next=${encodeURIComponent(params.get("next")!)}`
+                : "/login"
+            }
+            className="font-medium text-brand-deep underline"
+          >
             Sign in
           </Link>
         </p>

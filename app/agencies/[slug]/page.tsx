@@ -10,7 +10,8 @@ import { getAgencyPublicProfile, requestHomeAgencyConnection } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast-context";
 import {
-  CONNECTION_STATUS_LABEL,
+  agencyConnectionsPath,
+  canConnectWithAgencies,
   QUALIFICATION_LABELS,
   SUBSCRIPTION_PLAN_LABEL,
 } from "@/lib/types";
@@ -35,18 +36,23 @@ export default function AgencyPublicProfilePage() {
     onSuccess: () => {
       showToast("Connection request sent", "success");
       queryClient.invalidateQueries({ queryKey: ["home-agency-connections"] });
-      router.push("/client/agencies");
+      if (user && canConnectWithAgencies(user.role)) {
+        router.push(agencyConnectionsPath(user.role));
+      }
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
   function handleConnect() {
-    if (!isAuthenticated || user?.role !== "CLIENT") {
+    if (!isAuthenticated || !canConnectWithAgencies(user?.role)) {
       router.push(`/login?next=/agencies/${slug}`);
       return;
     }
     connect.mutate();
   }
+
+  const canConnect = isAuthenticated && canConnectWithAgencies(user?.role);
+  const isFacility = user?.role === "FACILITY";
 
   if (profile.isLoading) {
     return (
@@ -135,15 +141,20 @@ export default function AgencyPublicProfilePage() {
           <div className="mt-8 rounded-xl border border-brand/20 bg-brand-soft/30 p-5">
             <h2 className="font-display text-lg text-ink">Connect with this agency</h2>
             <p className="mt-1 text-sm text-ink-muted">
-              Free for homes. Once connected, you can send shift requests to this
-              agency when Phase B launches.
+              {isFacility
+                ? "Free for facilities. Once connected, you can route coverage needs to this agency."
+                : "Free for homes. Once connected, you can send care requests to this agency."}
             </p>
-            {isAuthenticated && user?.role === "CLIENT" ? (
+            {canConnect ? (
               <>
                 <textarea
                   className="mt-4 w-full rounded-md border border-border bg-white p-3 text-sm"
                   rows={3}
-                  placeholder="Optional message (care needs, schedule, etc.)"
+                  placeholder={
+                    isFacility
+                      ? "Optional message (site needs, typical hours, etc.)"
+                      : "Optional message (care needs, schedule, etc.)"
+                  }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                 />
@@ -155,10 +166,19 @@ export default function AgencyPublicProfilePage() {
                   {connect.isPending ? "Sending…" : "Request connection"}
                 </Button>
               </>
+            ) : isAuthenticated ? (
+              <p className="mt-4 text-sm text-ink-muted">
+                Sign in with a family/home or facility account to request a
+                connection. Caregiver and agency accounts cannot connect from
+                the directory.
+              </p>
             ) : (
               <div className="mt-4 flex flex-wrap gap-2">
                 <ButtonLink href={`/register?role=CLIENT&next=/agencies/${slug}`}>
                   Create free home account
+                </ButtonLink>
+                <ButtonLink href={`/register?role=FACILITY&next=/agencies/${slug}`}>
+                  Register facility
                 </ButtonLink>
                 <ButtonLink href={`/login?next=/agencies/${slug}`} variant="secondary">
                   Sign in to connect

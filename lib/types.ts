@@ -507,6 +507,15 @@ export interface SubscriptionPlanCatalogEntry {
 
 export type ConnectionStatus = "PENDING" | "ACTIVE" | "ENDED";
 
+/** Roles that can browse the agency directory and request connections. */
+export function canConnectWithAgencies(role: UserRole | undefined): boolean {
+  return role === "CLIENT" || role === "FACILITY";
+}
+
+export function agencyConnectionsPath(role: UserRole): string {
+  return role === "FACILITY" ? "/facility/agencies" : "/client/agencies";
+}
+
 export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
   PENDING: "Pending",
   ACTIVE: "Connected",
