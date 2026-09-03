@@ -42,7 +42,6 @@ import type {
   ConnectStatus,
   CaregiverAgencyInterest,
   CaregiverLookup,
-  parseAgencyScheduleSite,
 } from "./types";
 
 const API_BASE_URL =
@@ -606,15 +605,15 @@ export function getAgencyScheduleCalendar(
   to: string,
   siteKey: string,
 ) {
-  const site = parseAgencyScheduleSite(siteKey);
+  const site = /^(client|facility):(.+)$/.exec(siteKey ?? "");
   if (!site) {
-    throw new Error("Invalid schedule site");
+    return Promise.resolve([] as ScheduleDay[]);
   }
   const params = new URLSearchParams({ from, to });
-  if (site.kind === "client") {
-    params.set("clientProfileId", site.id);
+  if (site[1] === "client") {
+    params.set("clientProfileId", site[2]);
   } else {
-    params.set("facilityProfileId", site.id);
+    params.set("facilityProfileId", site[2]);
   }
   return request<ScheduleDay[]>(`/api/agencies/me/schedule/calendar?${params}`);
 }

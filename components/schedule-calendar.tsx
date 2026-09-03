@@ -397,8 +397,6 @@ export function ScheduleCalendar({
         <p className="text-sm text-ink-muted">{emptySiteMessage}</p>
       ) : calendar.isLoading ? (
         <p className="text-sm text-ink-muted">Loading schedule…</p>
-      ) : calendar.isError ? (
-        <p className="text-sm text-danger">Could not load schedule.</p>
       ) : (
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
           {days.map((day) => {
