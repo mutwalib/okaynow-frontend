@@ -42,6 +42,7 @@ import type {
   ConnectStatus,
   CaregiverAgencyInterest,
   CaregiverLookup,
+  parseAgencyScheduleSite,
 } from "./types";
 
 const API_BASE_URL =
@@ -603,10 +604,32 @@ export interface AgencyClientShiftPayload {
 export function getAgencyScheduleCalendar(
   from: string,
   to: string,
-  clientProfileId: string,
+  siteKey: string,
 ) {
-  const params = new URLSearchParams({ from, to, clientProfileId });
+  const site = parseAgencyScheduleSite(siteKey);
+  if (!site) {
+    throw new Error("Invalid schedule site");
+  }
+  const params = new URLSearchParams({ from, to });
+  if (site.kind === "client") {
+    params.set("clientProfileId", site.id);
+  } else {
+    params.set("facilityProfileId", site.id);
+  }
   return request<ScheduleDay[]>(`/api/agencies/me/schedule/calendar?${params}`);
+}
+
+export function createAgencyFacilityShift(
+  facilityProfileId: string,
+  payload: AgencyClientShiftPayload,
+) {
+  return request<CreateShiftResponse>(
+    `/api/agencies/me/facilities/${facilityProfileId}/shifts`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function createAgencyClientShift(

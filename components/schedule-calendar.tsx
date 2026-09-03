@@ -99,6 +99,8 @@ export function ScheduleCalendar({
   showRosterSlots = false,
   calendarHint,
   respectAgencyManaged = false,
+  clientPickerLabel = "Home client",
+  emptySiteMessage = "Select a connected home to view their schedule.",
 }: {
   shiftBasePath: string;
   /** Path for creating a shift (query params appended). */
@@ -122,6 +124,8 @@ export function ScheduleCalendar({
   calendarHint?: string;
   /** Agency calendar: only agency-created shifts are editable. */
   respectAgencyManaged?: boolean;
+  clientPickerLabel?: string;
+  emptySiteMessage?: string;
 }) {
   const router = useRouter();
   const qc = useQueryClient();
@@ -323,13 +327,17 @@ export function ScheduleCalendar({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {clients && clients.length > 0 ? (
-            <Field label="Home client" className="min-w-[220px]">
+          {clients != null ? (
+            <Field label={clientPickerLabel} className="min-w-[220px]">
               <Select
                 value={selectedClientId}
                 onChange={(e) => onClientChange?.(e.target.value)}
               >
-                <option value="">Select a connected home…</option>
+                <option value="">
+                  {clients.length > 0
+                    ? "Select…"
+                    : "No active connections"}
+                </option>
                 {clients.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
@@ -386,9 +394,7 @@ export function ScheduleCalendar({
       </div>
 
       {fetchCalendar && !selectedClientId ? (
-        <p className="text-sm text-ink-muted">
-          Select a connected home to view their schedule.
-        </p>
+        <p className="text-sm text-ink-muted">{emptySiteMessage}</p>
       ) : calendar.isLoading ? (
         <p className="text-sm text-ink-muted">Loading schedule…</p>
       ) : calendar.isError ? (

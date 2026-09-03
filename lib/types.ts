@@ -516,6 +516,33 @@ export function agencyConnectionsPath(role: UserRole): string {
   return role === "FACILITY" ? "/facility/agencies" : "/client/agencies";
 }
 
+/** Value for agency schedule site picker: client:{id} or facility:{id} */
+export function agencyScheduleSiteValue(connection: HomeAgencyConnection): string | null {
+  if (connection.status !== "ACTIVE") return null;
+  if (connection.clientProfileId) return `client:${connection.clientProfileId}`;
+  if (connection.facilityProfileId) return `facility:${connection.facilityProfileId}`;
+  return null;
+}
+
+export function agencyScheduleSiteLabel(connection: HomeAgencyConnection): string {
+  if (connection.clientProfileId) {
+    const name = [connection.homeFirstName, connection.homeLastName]
+      .filter(Boolean)
+      .join(" ");
+    return name || "Home";
+  }
+  return connection.homeFirstName ?? "Facility";
+}
+
+export function parseAgencyScheduleSite(value: string): {
+  kind: "client" | "facility";
+  id: string;
+} | null {
+  const match = /^(client|facility):(.+)$/.exec(value);
+  if (!match) return null;
+  return { kind: match[1] as "client" | "facility", id: match[2] };
+}
+
 export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
   PENDING: "Pending",
   ACTIVE: "Connected",
@@ -629,6 +656,7 @@ export interface HomeAgencyConnection {
   agencyState: string | null;
   homeUserId: string;
   clientProfileId: string | null;
+  facilityProfileId: string | null;
   homeFirstName: string | null;
   homeLastName: string | null;
   status: ConnectionStatus;
