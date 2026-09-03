@@ -12,6 +12,7 @@ import {
   getAgencyShifts,
 } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { formatDate } from "@/lib/format";
 import { QUALIFICATION_LABELS } from "@/lib/types";
 
 export default function AgencyShiftsPage() {
@@ -101,7 +102,7 @@ export default function AgencyShiftsPage() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="font-medium text-ink">
-                    {s.date} · {QUALIFICATION_LABELS[s.requiredQualification]}
+                    {formatDate(s.date)} · {QUALIFICATION_LABELS[s.requiredQualification]}
                   </p>
                   <p className="text-sm text-ink-muted">
                     {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)} · {s.city} ·{" "}

@@ -8,6 +8,7 @@ import {
   getCaregiverAgencyOpenShifts,
 } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { formatDate } from "@/lib/format";
 import { QUALIFICATION_LABELS } from "@/lib/types";
 
 export default function CaregiverAgencyShiftsPage() {
@@ -57,7 +58,7 @@ export default function CaregiverAgencyShiftsPage() {
             <div>
               <p className="inline-flex items-center gap-1.5 font-medium text-ink">
                 <Zap className="h-4 w-4 text-brand" aria-hidden />
-                {s.date} · {QUALIFICATION_LABELS[s.requiredQualification]}
+                {formatDate(s.date)} · {QUALIFICATION_LABELS[s.requiredQualification]}
               </p>
               <p className="mt-1 text-sm text-ink-muted">
                 {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)}
