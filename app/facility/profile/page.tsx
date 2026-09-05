@@ -126,7 +126,7 @@ export default function FacilityProfilePage() {
         </div>
         <p className="text-xs text-ink-muted">
           Contact names and facility name are set at registration and cannot be
-          changed here. Contact the agency if a correction is required.
+          changed here. Contact OkayNow support if a correction is required.
         </p>
 
         <Field label="Phone">

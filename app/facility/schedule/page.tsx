@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, PlusCircle } from "lucide-react";
 import { ScheduleCalendar } from "@/components/schedule-calendar";
+import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { ButtonLink } from "@/components/ui/button";
 import { getHomeAgencyConnections } from "@/lib/api";
 
@@ -33,9 +34,11 @@ export default function FacilitySchedulePage() {
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Full-week view. Past days are grayed (history only). When you need
-            coverage, send the opening to one, several, or all connected
-            agencies.
+            coverage, send the opening to exactly one connected agency.
           </p>
+          <div className="mt-3 max-w-xl">
+            <CaregiverVerificationDisclaimer audience="facility" />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <ButtonLink href="/facility/shifts" variant="secondary">

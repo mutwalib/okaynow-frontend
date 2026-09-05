@@ -112,8 +112,8 @@ export default function ClientProfilePage() {
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
-          Names are set at registration and cannot be changed. Contact the agency
-          if a correction is required.
+          Names are set at registration and cannot be changed. Contact OkayNow
+          support if a correction is required.
         </p>
         <Field label="Street address">
           <Input disabled={locked} {...register("addressLine")} />

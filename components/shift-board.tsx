@@ -2,7 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { getClientOptions, getShifts } from "@/lib/api";
+import {
+  getCaregiverAgencyOpenShifts,
+  getClientOptions,
+  getMyCaregiverProfile,
+  getShifts,
+} from "@/lib/api";
 import { MOCK_SHIFTS } from "@/lib/mockShifts";
 import { useListPagination } from "@/lib/pagination";
 import type { PagedResponse } from "@/lib/types";
@@ -17,12 +22,15 @@ export function ShiftBoard({
   defaultStatus = "OPEN",
   showClientFilter = false,
   allowClaim = false,
+  includeAgencyRoster = false,
 }: {
   basePath: string;
   showBillRate?: boolean;
   defaultStatus?: ShiftStatus | "";
   showClientFilter?: boolean;
   allowClaim?: boolean;
+  /** Caregiver open board: merge roster openings from agencies they belong to. */
+  includeAgencyRoster?: boolean;
 }) {
   const [qualification, setQualification] = useState("");
   const [status, setStatus] = useState<string>(defaultStatus);
@@ -47,6 +55,14 @@ export function ShiftBoard({
     queryFn: getClientOptions,
     enabled: showClientFilter,
   });
+  const profile = useQuery({
+    queryKey: ["caregiver-me"],
+    queryFn: getMyCaregiverProfile,
+    enabled: includeAgencyRoster,
+  });
+  const independentOn = profile.data?.independentShiftsEnabled !== false;
+  const agencyOn =
+    includeAgencyRoster && profile.data?.agencyRosterEnabled !== false;
 
   const query = useQuery({
     queryKey: [
@@ -61,6 +77,7 @@ export function ShiftBoard({
       page,
       pageSize,
     ],
+    enabled: !includeAgencyRoster || independentOn,
     queryFn: async (): Promise<PagedResponse<Shift>> => {
       try {
         const result = await getShifts({
@@ -130,14 +147,59 @@ export function ShiftBoard({
     },
   });
 
-  const shifts = useMemo(() => query.data?.content ?? [], [query.data?.content]);
+  const agencyOpen = useQuery({
+    queryKey: ["caregiver-agency-open-shifts", "board"],
+    queryFn: () => getCaregiverAgencyOpenShifts(),
+    enabled: agencyOn && status === "OPEN",
+    refetchInterval: 30_000,
+  });
+
+  const shifts = useMemo(() => {
+    const market =
+      !includeAgencyRoster || independentOn
+        ? (query.data?.content ?? [])
+        : [];
+    if (!agencyOn || status !== "OPEN") return market;
+    const byId = new Map<string, Shift>();
+    for (const s of market) byId.set(s.id, s);
+    for (const s of agencyOpen.data ?? []) {
+      if (qualification && s.requiredQualification !== qualification) continue;
+      if (dateFrom && s.date < dateFrom) continue;
+      if (minPay && Number(s.payRate) < Number(minPay)) continue;
+      if (maxPay && Number(s.payRate) > Number(maxPay)) continue;
+      byId.set(s.id, s);
+    }
+    return Array.from(byId.values()).sort((a, b) => {
+      const d = a.date.localeCompare(b.date);
+      if (d !== 0) return d;
+      return (a.startTime ?? "").localeCompare(b.startTime ?? "");
+    });
+  }, [
+    includeAgencyRoster,
+    independentOn,
+    agencyOn,
+    status,
+    query.data,
+    agencyOpen.data,
+    qualification,
+    dateFrom,
+    minPay,
+    maxPay,
+  ]);
+
+  const loading =
+    ((!includeAgencyRoster || independentOn) &&
+      query.isLoading &&
+      !query.data) ||
+    (agencyOn && status === "OPEN" && agencyOpen.isLoading && !agencyOpen.data);
 
   return (
     <div className="space-y-6">
       {!showClientFilter && defaultStatus === "OPEN" ? (
         <p className="text-sm text-ink-muted">
-          Showing free open shifts in your service area. Filled shifts are not permanent —
-          when they reopen, eligible caregivers in jurisdiction can claim them again.
+          {includeAgencyRoster
+            ? "Marketplace opens plus shifts your agencies posted to their roster (labeled by agency). Only roster members see those agency openings."
+            : "Showing free open shifts in your service area. Filled shifts are not permanent — when they reopen, eligible caregivers in jurisdiction can claim them again."}
         </p>
       ) : null}
       <div className="grid gap-3 rounded-lg border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -224,12 +286,12 @@ export function ShiftBoard({
         </p>
       ) : null}
 
-      {query.isLoading ? <LoadingBlock /> : null}
+      {loading ? <LoadingBlock /> : null}
 
-      {!query.isLoading && shifts.length === 0 ? (
+      {!loading && shifts.length === 0 ? (
         <EmptyState
           title="No shifts match"
-          body="Try clearing filters or post a new shift from your dashboard."
+          body="Try clearing filters or check back when agencies or families post openings."
         />
       ) : null}
 
@@ -245,7 +307,7 @@ export function ShiftBoard({
         ))}
       </div>
 
-      {query.data ? (
+      {(!includeAgencyRoster || independentOn) && query.data ? (
         <ListPagination
           page={page}
           pageSize={pageSize}

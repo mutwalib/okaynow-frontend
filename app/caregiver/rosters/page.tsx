@@ -40,10 +40,11 @@ export default function CaregiverRostersPage() {
     <div className="space-y-10">
       <section>
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Agencies</p>
-        <h1 className="mt-1 font-display text-3xl text-ink">My rosters</h1>
+        <h1 className="mt-1 font-display text-3xl text-ink">My Agencies</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Agencies that have you on staff. You only receive shifts from these
-          rosters.
+          Agencies that have you on staff. When they open a shift to their
+          roster, it appears under Open shifts with the agency name — only for
+          caregivers on that roster.
         </p>
         <ButtonLink href="/caregiver/find-agencies" className="mt-4" variant="secondary">
           Find agencies hiring

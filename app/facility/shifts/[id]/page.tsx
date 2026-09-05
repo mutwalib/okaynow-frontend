@@ -74,13 +74,7 @@ export default function FacilityShiftDetailPage() {
       setCoverageOpen(false);
       qc.invalidateQueries({ queryKey: ["shift", id] });
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
-      const n = vars.agencyIds.length;
-      showToast(
-        n === 1
-          ? "Sent to 1 connected agency"
-          : `Sent to ${n} connected agencies`,
-        "success",
-      );
+      showToast("Sent to the selected agency", "success");
     },
     onError: (error: Error) => showToast(error.message, "error"),
   });

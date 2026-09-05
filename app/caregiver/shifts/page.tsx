@@ -15,8 +15,9 @@ export default function CaregiverShiftsPage() {
             Open shifts
           </h1>
           <p className="mb-1 text-sm text-ink-muted animate-rise-delay">
-            Live marketplace — new opens ping you instantly; taken shifts drop
-            off the board as soon as someone claims them.
+            Marketplace opens and roster openings from agencies you belong to.
+            Agency shifts show the agency name and are only visible to that
+            roster.
           </p>
         </div>
         <p
@@ -30,7 +31,12 @@ export default function CaregiverShiftsPage() {
           {connected ? "Live" : "Reconnecting"}
         </p>
       </div>
-      <ShiftBoard basePath="/caregiver/shifts" defaultStatus="OPEN" allowClaim />
+      <ShiftBoard
+        basePath="/caregiver/shifts"
+        defaultStatus="OPEN"
+        allowClaim
+        includeAgencyRoster
+      />
     </div>
   );
 }

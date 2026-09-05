@@ -144,6 +144,10 @@ export interface CaregiverProfile {
   cvUploadedAt: string | null;
   ratingAvg: number | null;
   ratingCount: number | null;
+  /** Claim open shifts from homes/facilities (independent marketplace). */
+  independentShiftsEnabled?: boolean;
+  /** Join agency rosters and receive agency-posted shifts. */
+  agencyRosterEnabled?: boolean;
 }
 
 export interface ClientProfile {
@@ -238,6 +242,9 @@ export interface Shift {
   surgeTierApplied?: number;
   /** Facility opening was sent to connected agencies. */
   agencyCoverageRequested?: boolean;
+  /** Agency that opened this shift to its roster (not public marketplace). */
+  agencyId?: string | null;
+  agencyDisplayName?: string | null;
   createdBy: string;
   createdAt: string;
 }

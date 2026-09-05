@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
+import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -38,7 +39,7 @@ export function MarketplaceCoverageModal({
   onConfirm: (slots: number, agencyIds?: string[]) => void;
 }) {
   const [slots, setSlots] = useState(1);
-  const [selectedAgencies, setSelectedAgencies] = useState<string[]>([]);
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   const agencyMode = connectedAgencies != null;
 
   useEffect(() => {
@@ -46,8 +47,8 @@ export function MarketplaceCoverageModal({
     setSlots(
       Math.min(draft.maxSlots, Math.max(1, draft.defaultSlots || draft.maxSlots)),
     );
-    // Start empty so the facility must choose one, several, or Select all.
-    setSelectedAgencies([]);
+    // Force an explicit single-agency choice each time the modal opens.
+    setSelectedAgencyId("");
   }, [draft?.shiftId, draft?.maxSlots, draft?.defaultSlots]);
 
   if (!draft) return null;
@@ -55,8 +56,8 @@ export function MarketplaceCoverageModal({
   const open = draft.maxSlots >= 1;
   const title = agencyMode
     ? draft.mode === "replace"
-      ? "Call out — choose agencies"
-      : "Send opening to agencies"
+      ? "Call out — choose an agency"
+      : "Send opening to an agency"
     : draft.mode === "replace"
       ? "Call out — open marketplace"
       : "Open marketplace coverage";
@@ -64,13 +65,7 @@ export function MarketplaceCoverageModal({
   const canConfirm =
     !busy &&
     (!agencyMode ||
-      (connectedAgencies.length > 0 && selectedAgencies.length > 0));
-
-  function toggleAgency(id: string) {
-    setSelectedAgencies((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
+      (connectedAgencies.length > 0 && !!selectedAgencyId));
 
   return (
     <Modal
@@ -94,7 +89,12 @@ export function MarketplaceCoverageModal({
             size="sm"
             disabled={!canConfirm}
             onClick={() =>
-              onConfirm(slots, agencyMode ? selectedAgencies : undefined)
+              onConfirm(
+                slots,
+                agencyMode && selectedAgencyId
+                  ? [selectedAgencyId]
+                  : undefined,
+              )
             }
           >
             <Megaphone className="h-4 w-4" aria-hidden />
@@ -103,11 +103,9 @@ export function MarketplaceCoverageModal({
                 ? "Sending…"
                 : "Opening…"
               : agencyMode
-                ? selectedAgencies.length === 0
-                  ? "Select agencies"
-                  : selectedAgencies.length === 1
-                    ? "Send to 1 agency"
-                    : `Send to ${selectedAgencies.length} agencies`
+                ? selectedAgencyId
+                  ? "Send to agency"
+                  : "Select an agency"
                 : slots === 1
                   ? "Open 1 slot"
                   : `Open ${slots} slots`}
@@ -123,11 +121,11 @@ export function MarketplaceCoverageModal({
         {agencyMode ? (
           <fieldset className="rounded-lg border border-line bg-canvas/50 p-3">
             <legend className="px-1 text-sm font-semibold text-ink">
-              Which agencies should receive this opening?
+              Which agency should receive this opening?
             </legend>
             <p className="mt-1 text-sm text-ink-muted">
-              Pick one agency, several, or all of them. Each agency then handles
-              staffing with its own routing settings (inbox or auto-broadcast).
+              Send each opening to exactly one agency. That agency staffs it
+              with its roster (inbox or auto-broadcast).
             </p>
             {connectedAgencies.length === 0 ? (
               <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -140,59 +138,36 @@ export function MarketplaceCoverageModal({
                 </Link>
               </p>
             ) : (
-              <>
-                <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                  <button
-                    type="button"
-                    className="font-medium text-brand underline-offset-2 hover:underline"
-                    disabled={busy}
-                    onClick={() =>
-                      setSelectedAgencies(
-                        connectedAgencies.map((a) => a.agencyId),
-                      )
-                    }
-                  >
-                    Select all ({connectedAgencies.length})
-                  </button>
-                  <button
-                    type="button"
-                    className="text-ink-muted underline-offset-2 hover:underline"
-                    disabled={busy || selectedAgencies.length === 0}
-                    onClick={() => setSelectedAgencies([])}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {connectedAgencies.map((a) => {
-                    const checked = selectedAgencies.includes(a.agencyId);
-                    return (
-                      <label
-                        key={a.agencyId}
-                        className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition ${
-                          checked
-                            ? "border-brand bg-brand/5 text-ink"
-                            : "border-line bg-paper text-ink hover:border-brand/60"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 accent-[var(--brand,#0f766e)]"
-                          disabled={busy}
-                          checked={checked}
-                          onChange={() => toggleAgency(a.agencyId)}
-                        />
-                        <span className="font-medium">{a.agencyDisplayName}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {selectedAgencies.length === 0 ? (
+              <div className="mt-3 space-y-2">
+                {connectedAgencies.map((a) => {
+                  const checked = selectedAgencyId === a.agencyId;
+                  return (
+                    <label
+                      key={a.agencyId}
+                      className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition ${
+                        checked
+                          ? "border-brand bg-brand/5 text-ink"
+                          : "border-line bg-paper text-ink hover:border-brand/60"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="coverage-agency"
+                        className="h-4 w-4 accent-[var(--brand,#0f766e)]"
+                        disabled={busy}
+                        checked={checked}
+                        onChange={() => setSelectedAgencyId(a.agencyId)}
+                      />
+                      <span className="font-medium">{a.agencyDisplayName}</span>
+                    </label>
+                  );
+                })}
+                {!selectedAgencyId ? (
                   <p className="mt-2 text-xs text-warn">
-                    Select at least one agency to continue.
+                    Select one agency to continue.
                   </p>
                 ) : null}
-              </>
+              </div>
             )}
           </fieldset>
         ) : null}
@@ -259,6 +234,10 @@ export function MarketplaceCoverageModal({
               : ""}
           </p>
         </div>
+
+        <CaregiverVerificationDisclaimer
+          audience={agencyMode ? "facility" : "home"}
+        />
       </div>
     </Modal>
   );

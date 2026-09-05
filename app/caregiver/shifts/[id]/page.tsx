@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Hand, Undo2 } from "lucide-react";
-import { claimShift, getMyClaims, getShift, releaseShift, acceptShiftInvite, declineShiftInvite } from "@/lib/api";
+import { claimCaregiverAgencyShift, claimShift, getMyClaims, getShift, releaseShift, acceptShiftInvite, declineShiftInvite } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import { MOCK_SHIFTS } from "@/lib/mockShifts";
 import { formatDate, formatMoney, formatTime, shiftHours } from "@/lib/format";
@@ -56,12 +56,21 @@ export default function CaregiverShiftDetailPage() {
   const myClaim = claimsQuery.data?.content.find((c) => c.shift.id === id);
 
   const claim = useMutation({
-    mutationFn: () => claimShift(id),
+    mutationFn: () =>
+      query.data?.agencyId
+        ? claimCaregiverAgencyShift(id)
+        : claimShift(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift", id] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["caregiver-agency-open-shifts"] });
       queryClient.invalidateQueries({ queryKey: ["my-claims"] });
-      showToast("Shift claimed. The agency can now confirm your assignment.", "success");
+      showToast(
+        query.data?.agencyId
+          ? "Shift claimed from your agency roster."
+          : "Shift claimed. OkayNow can confirm your assignment.",
+        "success",
+      );
       router.push("/caregiver/my-shifts");
     },
     onError: (error: Error) => showToast(error.message, "error"),
@@ -162,6 +171,11 @@ export default function CaregiverShiftDetailPage() {
           <span className="rounded bg-surface-2 px-2 py-0.5 text-xs font-semibold">
             {shift.requiredQualification}
           </span>
+          {shift.agencyDisplayName ? (
+            <span className="rounded border border-brand/30 bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-deep">
+              {shift.agencyDisplayName}
+            </span>
+          ) : null}
         </div>
         <h1 className="font-display text-4xl text-ink">
           {formatDate(shift.date)}

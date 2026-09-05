@@ -19,6 +19,11 @@ import { LoadingBlock } from "@/components/shift-card";
 import { ProfilePhotoField } from "@/components/profile-photo-field";
 import { DeleteAccountSection } from "@/components/delete-account-section";
 import { ChangePasswordSection } from "@/components/change-password-section";
+import {
+  SERVICE_RADIUS_DEFAULT,
+  ServiceRadiusSlider,
+  clampServiceRadius,
+} from "@/components/service-radius-slider";
 import { useRouter } from "next/navigation";
 
 type FormValues = {
@@ -26,12 +31,14 @@ type FormValues = {
   lastName: string;
   hourlyRateMin: number | "";
   hourlyRateMax: number | "";
-  serviceRadiusMiles: number | "";
+  serviceRadiusMiles: number;
   homeAddressLine: string;
   homeCity: string;
   homeZip: string;
   qualifications: Qualification[];
   otherQualificationDetail: string;
+  independentShiftsEnabled: boolean;
+  agencyRosterEnabled: boolean;
 };
 
 export default function CaregiverProfilePage() {
@@ -55,16 +62,21 @@ export default function CaregiverProfilePage() {
       lastName: "",
       hourlyRateMin: "",
       hourlyRateMax: "",
-      serviceRadiusMiles: "",
+      serviceRadiusMiles: SERVICE_RADIUS_DEFAULT,
       homeAddressLine: "",
       homeCity: "",
       homeZip: "",
       qualifications: [],
       otherQualificationDetail: "",
+      independentShiftsEnabled: true,
+      agencyRosterEnabled: true,
     },
   });
 
   const selected = watch("qualifications") ?? [];
+  const independentOn = watch("independentShiftsEnabled");
+  const agencyOn = watch("agencyRosterEnabled");
+  const radiusMiles = watch("serviceRadiusMiles");
 
   useEffect(() => {
     if (!profile.data) return;
@@ -73,12 +85,14 @@ export default function CaregiverProfilePage() {
       lastName: profile.data.lastName,
       hourlyRateMin: profile.data.hourlyRateMin ?? "",
       hourlyRateMax: profile.data.hourlyRateMax ?? "",
-      serviceRadiusMiles: profile.data.serviceRadiusMiles ?? "",
+      serviceRadiusMiles: clampServiceRadius(profile.data.serviceRadiusMiles),
       homeAddressLine: profile.data.homeAddressLine ?? "",
       homeCity: profile.data.homeCity ?? "",
       homeZip: profile.data.homeZip ?? "",
       qualifications: profile.data.qualifications ?? [],
       otherQualificationDetail: profile.data.otherQualificationDetail ?? "",
+      independentShiftsEnabled: profile.data.independentShiftsEnabled !== false,
+      agencyRosterEnabled: profile.data.agencyRosterEnabled !== false,
     });
   }, [profile.data, reset]);
 
@@ -98,6 +112,11 @@ export default function CaregiverProfilePage() {
           new Error("Specify what your Other qualification is."),
         );
       }
+      if (!values.independentShiftsEnabled && !values.agencyRosterEnabled) {
+        return Promise.reject(
+          new Error("Enable independent shifts, agency rosters, or both."),
+        );
+      }
       return updateMyCaregiverProfile({
         firstName: profile.data!.firstName,
         lastName: profile.data!.lastName,
@@ -109,14 +128,13 @@ export default function CaregiverProfilePage() {
           values.hourlyRateMin === "" ? null : Number(values.hourlyRateMin),
         hourlyRateMax:
           values.hourlyRateMax === "" ? null : Number(values.hourlyRateMax),
-        serviceRadiusMiles:
-          values.serviceRadiusMiles === ""
-            ? null
-            : Number(values.serviceRadiusMiles),
+        serviceRadiusMiles: clampServiceRadius(values.serviceRadiusMiles),
         homeAddressLine: values.homeAddressLine || null,
         homeCity: values.homeCity || null,
         homeState: DEFAULT_STATE,
         homeZip: values.homeZip || null,
+        independentShiftsEnabled: values.independentShiftsEnabled,
+        agencyRosterEnabled: values.agencyRosterEnabled,
       });
     },
     onSuccess: async () => {
@@ -125,7 +143,7 @@ export default function CaregiverProfilePage() {
         const next = await refreshAccountStatus();
         if (next?.status === "PENDING_REVIEW") {
           showToast(
-            "Profile updated. Your account is back under agency review.",
+            "Profile updated. Your account is back under OkayNow review.",
             "success",
           );
           router.replace("/pending-review");
@@ -305,15 +323,68 @@ export default function CaregiverProfilePage() {
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
-          Names are set at registration and cannot be changed here. Contact the
-          agency if a correction is required — staff can update it for you.
+          Names are set at registration and cannot be changed here. Contact
+          OkayNow support if a correction is required — OkayNow staff can update
+          it for you.
         </p>
         {locked ? (
           <p className="text-xs text-ink-muted">
-            Changing qualifications or home address requires agency
-            re-verification before you can continue. Pay rate and radius do not.
+            Changing qualifications or home address requires OkayNow
+            re-verification before you can continue. Pay rate, radius, and how
+            you get work do not.
           </p>
         ) : null}
+
+        <p className="text-xs text-ink-muted">
+          Agencies and families verify caregiver credentials themselves. OkayNow
+          does not thoroughly verify caregiver particulars.
+        </p>
+
+        <fieldset className="space-y-3 rounded-lg border border-line p-4">
+          <legend className="px-1 text-sm font-medium text-ink">
+            How you get work
+          </legend>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={!!independentOn}
+              onChange={(e) =>
+                setValue("independentShiftsEnabled", e.target.checked, {
+                  shouldDirty: true,
+                })
+              }
+            />
+            <span>
+              <span className="font-medium text-ink">Independent shifts</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                Claim open shifts posted by families and facilities.
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={!!agencyOn}
+              onChange={(e) =>
+                setValue("agencyRosterEnabled", e.target.checked, {
+                  shouldDirty: true,
+                })
+              }
+            />
+            <span>
+              <span className="font-medium text-ink">Agency rosters</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                Join agencies and pick up shifts they open to their roster. See{" "}
+                <a href="/caregiver/rosters" className="text-brand underline">
+                  My Agencies
+                </a>
+                .
+              </span>
+            </span>
+          </label>
+        </fieldset>
 
         <div>
           <p className="mb-2 text-sm font-medium text-ink">Qualifications</p>
@@ -351,12 +422,12 @@ export default function CaregiverProfilePage() {
           {locked ? (
             <p className="mt-2 text-xs text-ink-muted">
               You can add or remove qualifications here. Saving qualification or
-              address changes sends your account back for agency review.
+              address changes sends your account back for OkayNow review.
             </p>
           ) : null}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Min $/hr">
             <Input
               type="number"
@@ -371,13 +442,14 @@ export default function CaregiverProfilePage() {
               {...register("hourlyRateMax")}
             />
           </Field>
-          <Field label="Radius (mi)">
-            <Input
-              type="number"
-              {...register("serviceRadiusMiles")}
-            />
-          </Field>
         </div>
+
+        <ServiceRadiusSlider
+          value={radiusMiles}
+          onChange={(miles) =>
+            setValue("serviceRadiusMiles", miles, { shouldDirty: true })
+          }
+        />
 
         <Field label="Street address">
           <Input {...register("homeAddressLine")} />

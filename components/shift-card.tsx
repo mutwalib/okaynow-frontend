@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Hand, MapPinned } from "lucide-react";
 import type { Shift } from "@/lib/types";
-import { claimShift } from "@/lib/api";
+import { claimCaregiverAgencyShift, claimShift } from "@/lib/api";
 import { formatDate, formatMoney, formatTime, shiftHours } from "@/lib/format";
 import { mapsDirectionsUrl } from "@/lib/maps";
 import { useToast } from "@/lib/toast-context";
@@ -31,10 +31,14 @@ export function ShiftCard({
   const { showToast } = useToast();
 
   const claim = useMutation({
-    mutationFn: () => claimShift(shift.id),
+    mutationFn: () =>
+      shift.agencyId
+        ? claimCaregiverAgencyShift(shift.id)
+        : claimShift(shift.id),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["shifts"] });
       await qc.cancelQueries({ queryKey: ["shifts-open-preview"] });
+      await qc.cancelQueries({ queryKey: ["caregiver-agency-open-shifts"] });
       const strip = (data: unknown) => {
         if (!data || typeof data !== "object") return data;
         if (Array.isArray(data)) {
@@ -55,11 +59,13 @@ export function ShiftCard({
       };
       qc.setQueriesData({ queryKey: ["shifts"] }, strip);
       qc.setQueriesData({ queryKey: ["shifts-open-preview"] }, strip);
+      qc.setQueriesData({ queryKey: ["caregiver-agency-open-shifts"] }, strip);
     },
     onSuccess: () => {
       showToast("Shift claimed", "success");
       qc.invalidateQueries({ queryKey: ["shifts"] });
       qc.invalidateQueries({ queryKey: ["shifts-open-preview"] });
+      qc.invalidateQueries({ queryKey: ["caregiver-agency-open-shifts"] });
       qc.invalidateQueries({ queryKey: ["my-claims"] });
       router.push(`/caregiver/my-shifts`);
     },
@@ -67,6 +73,7 @@ export function ShiftCard({
       showToast(err.message, "error");
       void qc.invalidateQueries({ queryKey: ["shifts"] });
       void qc.invalidateQueries({ queryKey: ["shifts-open-preview"] });
+      void qc.invalidateQueries({ queryKey: ["caregiver-agency-open-shifts"] });
     },
   });
 
@@ -85,6 +92,11 @@ export function ShiftCard({
             <span className="rounded bg-surface-2 px-2 py-0.5 text-xs font-semibold text-ink">
               {shift.requiredQualification}
             </span>
+            {shift.agencyDisplayName ? (
+              <span className="rounded border border-brand/30 bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-deep">
+                {shift.agencyDisplayName}
+              </span>
+            ) : null}
           </div>
           <Link
             href={href}

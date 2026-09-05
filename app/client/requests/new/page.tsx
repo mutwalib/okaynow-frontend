@@ -42,6 +42,8 @@ export default function NewShiftRequestPage() {
   const [endTime, setEndTime] = useState("17:00");
   const [notes, setNotes] = useState("");
   const [selectedAgencies, setSelectedAgencies] = useState<string[]>([]);
+  // Single agency only — keep as 0–1 length array for the API payload.
+  const selectedAgencyId = selectedAgencies[0] ?? "";
 
   const submit = useMutation({
     mutationFn: () =>
@@ -52,20 +54,14 @@ export default function NewShiftRequestPage() {
         startTime,
         endTime,
         notes: notes || undefined,
-        agencyIds: selectedAgencies,
+        agencyIds: selectedAgencyId ? [selectedAgencyId] : [],
       }),
     onSuccess: () => {
-      showToast("Care need sent to selected agencies", "success");
+      showToast("Care need sent to the selected agency", "success");
       router.push("/client/requests");
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
-
-  function toggleAgency(id: string) {
-    setSelectedAgencies((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -73,8 +69,8 @@ export default function NewShiftRequestPage() {
       showToast("Start date is required", "error");
       return;
     }
-    if (selectedAgencies.length === 0) {
-      showToast("Select at least one connected agency", "error");
+    if (!selectedAgencyId) {
+      showToast("Select exactly one connected agency", "error");
       return;
     }
     submit.mutate();
@@ -85,7 +81,8 @@ export default function NewShiftRequestPage() {
       <section>
         <h1 className="font-display text-3xl text-ink">Post a care need</h1>
         <p className="mt-2 text-sm text-ink-muted">
-          Routed only to agencies you select below — not a public shift board.
+          Choose exactly one connected agency for this need — not a public shift
+          board.
         </p>
       </section>
 
@@ -134,32 +131,26 @@ export default function NewShiftRequestPage() {
           />
         </Field>
         <fieldset>
-          <legend className="text-sm font-medium text-ink">Send to agencies</legend>
-          <div className="mt-2 flex gap-3 text-sm">
-            <button
-              type="button"
-              className="text-brand underline-offset-2 hover:underline"
-              onClick={() =>
-                setSelectedAgencies(activeAgencies.map((a) => a.agencyId))
-              }
-            >
-              Select all
-            </button>
-            <button
-              type="button"
-              className="text-ink-muted underline-offset-2 hover:underline"
-              onClick={() => setSelectedAgencies([])}
-            >
-              Clear
-            </button>
-          </div>
+          <legend className="text-sm font-medium text-ink">Agency</legend>
+          <p className="mt-1 text-xs text-ink-muted">
+            Each opening goes to one agency. Start another request to use a
+            different agency.
+          </p>
           <div className="mt-2 space-y-2">
             {activeAgencies.map((a) => (
-              <label key={a.agencyId} className="flex items-center gap-2 text-sm">
+              <label
+                key={a.agencyId}
+                className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                  selectedAgencyId === a.agencyId
+                    ? "border-brand bg-brand/5"
+                    : "border-line"
+                }`}
+              >
                 <input
-                  type="checkbox"
-                  checked={selectedAgencies.includes(a.agencyId)}
-                  onChange={() => toggleAgency(a.agencyId)}
+                  type="radio"
+                  name="agency"
+                  checked={selectedAgencyId === a.agencyId}
+                  onChange={() => setSelectedAgencies([a.agencyId])}
                 />
                 {a.agencyDisplayName}
               </label>

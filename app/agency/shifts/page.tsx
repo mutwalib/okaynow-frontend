@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Megaphone, UserMinus, UserPlus } from "lucide-react";
+import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
 import {
@@ -102,6 +103,9 @@ export default function AgencyShiftsPage() {
           pick shifts in real time, invite specific people, or assign directly.
           Drafts on Home schedules stay there until you open them.
         </p>
+        <div className="mt-4 max-w-2xl">
+          <CaregiverVerificationDisclaimer audience="agency" />
+        </div>
       </section>
 
       <div className="space-y-3">

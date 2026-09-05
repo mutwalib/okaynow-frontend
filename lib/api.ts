@@ -433,6 +433,8 @@ export function updateMyCaregiverProfile(
     homeZip: string | null;
     homeLat: number | null;
     homeLng: number | null;
+    independentShiftsEnabled?: boolean;
+    agencyRosterEnabled?: boolean;
   }>,
 ) {
   return request<CaregiverProfile>("/api/caregivers/me", {

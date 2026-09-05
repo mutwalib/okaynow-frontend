@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays } from "lucide-react";
 import { ScheduleCalendar } from "@/components/schedule-calendar";
+import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { ButtonLink } from "@/components/ui/button";
 import { getMyClientProfile } from "@/lib/api";
 
@@ -32,6 +33,9 @@ export default function ClientSchedulePage() {
             past days are history only. Open the marketplace only when you need
             coverage for a specific date.
           </p>
+          <div className="mt-3 max-w-2xl">
+            <CaregiverVerificationDisclaimer audience="home" />
+          </div>
         </div>
         <ButtonLink href="/client/shifts" variant="secondary">
           List view

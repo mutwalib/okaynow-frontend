@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, IdCard, UserRound } from "lucide-react";
+import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import {
@@ -150,6 +151,9 @@ export default function AgencyRosterPage() {
           Search caregivers by email, invite them, review applications, and open
           any roster member for full profile details and CV.
         </p>
+        <div className="mt-4 max-w-xl">
+          <CaregiverVerificationDisclaimer audience="agency" />
+        </div>
       </section>
 
       <form onSubmit={onInvite} className="max-w-md space-y-3 rounded-xl border border-border bg-white p-5">

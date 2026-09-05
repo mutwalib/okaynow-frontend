@@ -29,6 +29,10 @@ import { DEFAULT_STATE, maZipMessage } from "@/lib/service-region";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import {
+  ServiceRadiusSlider,
+  clampServiceRadius,
+} from "@/components/service-radius-slider";
 import { useToast } from "@/lib/toast-context";
 import { CheckCircle2, LogOut, Upload } from "lucide-react";
 import Link from "next/link";
@@ -415,7 +419,7 @@ function CaregiverApplicationFields({
     profile.hourlyRateMax != null ? String(profile.hourlyRateMax) : "",
   );
   const [radius, setRadius] = useState(() =>
-    profile.serviceRadiusMiles != null ? String(profile.serviceRadiusMiles) : "",
+    clampServiceRadius(profile.serviceRadiusMiles),
   );
   const [addressLine, setAddressLine] = useState(
     () => profile.homeAddressLine ?? "",
@@ -440,7 +444,7 @@ function CaregiverApplicationFields({
           : null,
         hourlyRateMin: rateMin === "" ? null : Number(rateMin),
         hourlyRateMax: rateMax === "" ? null : Number(rateMax),
-        serviceRadiusMiles: radius === "" ? null : Number(radius),
+        serviceRadiusMiles: clampServiceRadius(radius),
         homeAddressLine: addressLine || null,
         homeCity: city || null,
         homeState: DEFAULT_STATE,
@@ -503,17 +507,15 @@ function CaregiverApplicationFields({
           />
         </Field>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Min $/hr">
           <Input value={rateMin} onChange={(e) => setRateMin(e.target.value)} />
         </Field>
         <Field label="Max $/hr">
           <Input value={rateMax} onChange={(e) => setRateMax(e.target.value)} />
         </Field>
-        <Field label="Radius (mi)">
-          <Input value={radius} onChange={(e) => setRadius(e.target.value)} />
-        </Field>
       </div>
+      <ServiceRadiusSlider value={radius} onChange={setRadius} />
       <Field label="Street address">
         <Input
           value={addressLine}
@@ -794,7 +796,7 @@ export default function PendingReviewPage() {
               </h2>
               <p className="mt-2 text-sm text-ink-muted">
                 You&apos;ve entered everything we need. Confirm to send your
-                application for agency review. After you submit, these details
+                application for OkayNow review. After you submit, these details
                 stay locked unless the agency asks you to resubmit.
               </p>
               <Button
@@ -804,7 +806,7 @@ export default function PendingReviewPage() {
                 onClick={() => {
                   if (
                     window.confirm(
-                      "Submit your OkayNow application for agency review?",
+                      "Submit your OkayNow application for review?",
                     )
                   ) {
                     submitMut.mutate();
