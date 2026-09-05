@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote } from "lucide-react";
-import { getMyPayEntries, getMyPaySummary, getMyRosters } from "@/lib/api";
+import { getMyPayEntries, getMyPaySummary, getCaregiverRosters } from "@/lib/api";
 import {
   formatDate,
   formatMoney,
