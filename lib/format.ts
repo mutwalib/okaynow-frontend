@@ -88,6 +88,7 @@ export function statusTone(status: ShiftStatus): string {
     case "IN_PROGRESS":
       return "badge-progress";
     case "COMPLETED":
+    case "EXPIRED":
       return "badge-done";
     case "CANCELLED":
     case "NO_SHOW":

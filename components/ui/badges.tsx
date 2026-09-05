@@ -1,12 +1,13 @@
 import type { ShiftStatus } from "@/lib/types";
 import { statusTone } from "@/lib/format";
 
-export function StatusBadge({ status }: { status: ShiftStatus }) {
+export function StatusBadge({ status }: { status: ShiftStatus | string }) {
+  const label = status === "EXPIRED" ? "Passed" : status.replace("_", " ");
   return (
     <span
-      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${statusTone(status)}`}
+      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${statusTone(status as ShiftStatus)}`}
     >
-      {status.replace("_", " ")}
+      {label}
     </span>
   );
 }

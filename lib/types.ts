@@ -33,7 +33,8 @@ export type ShiftStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "EXPIRED";
 
 export type ShiftScheduleType = "ONE_OFF" | "DAILY_ROUTINE";
 
@@ -265,7 +266,8 @@ export type ShiftClaimStatus =
   | "PENDING"
   | "CONFIRMED"
   | "CANCELLED"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "EXPIRED";
 
 export interface AssignedCaregiver {
   claimId: string;

@@ -314,7 +314,7 @@ export default function CaregiverMyShiftsPage() {
     ["PENDING", "CONFIRMED"].includes(claim.status),
   );
   const history = filtered.filter((claim) =>
-    ["CANCELLED", "COMPLETED"].includes(claim.status),
+    ["CANCELLED", "COMPLETED", "EXPIRED"].includes(claim.status),
   );
   const activeGroups = groupByAgency(active);
   const historyGroups = groupByAgency(history);
