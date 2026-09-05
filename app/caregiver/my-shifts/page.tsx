@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarSearch, CircleStop, Timer, Undo2 } from "lucide-react";
 import {
@@ -9,7 +10,11 @@ import {
   getVisitByShift,
   releaseShift,
 } from "@/lib/api";
-import { captureGps, EVV_GEOFENCE_FEET, isWithinGeofence } from "@/lib/geo";
+import {
+  captureGps,
+  EVV_GEOFENCE_FEET,
+  isWithinGeofence,
+} from "@/lib/geo";
 import { AddressLink } from "@/components/address-link";
 import { EmptyState, LoadingBlock } from "@/components/shift-card";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -25,6 +30,46 @@ import {
   isPastShiftClockInWindow,
 } from "@/lib/shift-window";
 import { useToast } from "@/lib/toast-context";
+import type { ShiftClaim } from "@/lib/types";
+
+const FILTER_ALL = "all";
+const FILTER_INDEPENDENT = "independent";
+
+type AgencyFilter = typeof FILTER_ALL | typeof FILTER_INDEPENDENT | string;
+
+function agencyKey(claim: ShiftClaim): string {
+  return claim.shift.agencyId ?? FILTER_INDEPENDENT;
+}
+
+function agencyLabel(claim: ShiftClaim): string {
+  if (claim.shift.agencyId) {
+    return claim.shift.agencyDisplayName?.trim() || "Agency";
+  }
+  return "Independent";
+}
+
+function matchesAgencyFilter(claim: ShiftClaim, filter: AgencyFilter): boolean {
+  if (filter === FILTER_ALL) return true;
+  if (filter === FILTER_INDEPENDENT) return !claim.shift.agencyId;
+  return claim.shift.agencyId === filter;
+}
+
+function groupByAgency(claims: ShiftClaim[]) {
+  const map = new Map<string, { label: string; items: ShiftClaim[] }>();
+  for (const claim of claims) {
+    const key = agencyKey(claim);
+    const existing = map.get(key);
+    if (existing) existing.items.push(claim);
+    else map.set(key, { label: agencyLabel(claim), items: [claim] });
+  }
+  return Array.from(map.entries())
+    .map(([key, value]) => ({ key, label: value.label, items: value.items }))
+    .sort((a, b) => {
+      if (a.key === FILTER_INDEPENDENT) return -1;
+      if (b.key === FILTER_INDEPENDENT) return 1;
+      return a.label.localeCompare(b.label);
+    });
+}
 
 function VisitActions({
   shiftId,
@@ -223,9 +268,10 @@ export default function CaregiverMyShiftsPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { page, setPage, pageSize, setPageSize } = useListPagination();
+  const [agencyFilter, setAgencyFilter] = useState<AgencyFilter>(FILTER_ALL);
   const claims = useQuery({
     queryKey: ["my-claims", page, pageSize],
-    queryFn: () => getMyClaims(page, pageSize),
+    queryFn: () => getMyClaims(page, Math.max(pageSize, 50)),
   });
 
   const release = useMutation({
@@ -238,22 +284,76 @@ export default function CaregiverMyShiftsPage() {
     onError: (error: Error) => showToast(error.message, "error"),
   });
 
-  const active =
-    claims.data?.content.filter((claim) =>
-      ["PENDING", "CONFIRMED"].includes(claim.status),
-    ) ?? [];
-  const history =
-    claims.data?.content.filter((claim) =>
-      ["CANCELLED", "COMPLETED"].includes(claim.status),
-    ) ?? [];
+  const items = claims.data?.content ?? [];
+  const agencyOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    let hasIndependent = false;
+    for (const claim of items) {
+      if (!claim.shift.agencyId) {
+        hasIndependent = true;
+        continue;
+      }
+      map.set(
+        claim.shift.agencyId,
+        claim.shift.agencyDisplayName?.trim() || "Agency",
+      );
+    }
+    return {
+      hasIndependent,
+      agencies: Array.from(map.entries())
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }, [items]);
+
+  const filtered = useMemo(
+    () => items.filter((c) => matchesAgencyFilter(c, agencyFilter)),
+    [items, agencyFilter],
+  );
+  const active = filtered.filter((claim) =>
+    ["PENDING", "CONFIRMED"].includes(claim.status),
+  );
+  const history = filtered.filter((claim) =>
+    ["CANCELLED", "COMPLETED"].includes(claim.status),
+  );
+  const activeGroups = groupByAgency(active);
+  const historyGroups = groupByAgency(history);
+  const showGroupHeaders = agencyFilter === FILTER_ALL;
 
   return (
     <div className="space-y-8">
-      <h1 className="font-display text-3xl text-ink">My shifts</h1>
-      <p className="text-sm text-ink-muted">
-        Track pending claims, confirmed assignments, and clock in when you
-        arrive on site.
-      </p>
+      <div>
+        <h1 className="font-display text-3xl text-ink">My shifts</h1>
+        <p className="mt-1 text-sm text-ink-muted">
+          Track pending claims, confirmed assignments, and clock in when you
+          arrive on site.
+        </p>
+      </div>
+
+      {agencyOptions.agencies.length > 0 || agencyOptions.hasIndependent ? (
+        <div className="flex flex-wrap gap-2">
+          <FilterChip
+            label="All"
+            active={agencyFilter === FILTER_ALL}
+            onClick={() => setAgencyFilter(FILTER_ALL)}
+          />
+          {agencyOptions.hasIndependent ? (
+            <FilterChip
+              label="Independent"
+              active={agencyFilter === FILTER_INDEPENDENT}
+              onClick={() => setAgencyFilter(FILTER_INDEPENDENT)}
+            />
+          ) : null}
+          {agencyOptions.agencies.map((a) => (
+            <FilterChip
+              key={a.id}
+              label={a.name}
+              active={agencyFilter === a.id}
+              onClick={() => setAgencyFilter(a.id)}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {claims.isLoading ? <LoadingBlock /> : null}
       {claims.isError ? (
@@ -265,125 +365,153 @@ export default function CaregiverMyShiftsPage() {
       {!claims.isLoading && !claims.isError && active.length === 0 ? (
         <EmptyState
           title="No upcoming shifts"
-          body="Browse the open board and claim a shift that matches your credentials."
+          body={
+            agencyFilter !== FILTER_ALL
+              ? "No upcoming shifts for this agency filter."
+              : "Browse the open board and claim a shift that matches your credentials."
+          }
           action={
-            <ButtonLink href="/caregiver/shifts">
-              <CalendarSearch className="h-4 w-4" aria-hidden />
-              Browse open shifts
-            </ButtonLink>
+            agencyFilter === FILTER_ALL ? (
+              <ButtonLink href="/caregiver/shifts">
+                <CalendarSearch className="h-4 w-4" aria-hidden />
+                Browse open shifts
+              </ButtonLink>
+            ) : undefined
           }
         />
       ) : null}
 
       {active.length > 0 ? (
-        <section>
-          <h2 className="mb-3 font-display text-xl text-ink">Upcoming</h2>
-          <div className="space-y-3">
-            {active.map((claim) => {
-              const shift = claim.shift;
-              return (
-                <article
-                  key={claim.id}
-                  className="rounded-lg border border-line bg-paper p-5"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <div className="mb-2 flex items-center gap-2">
-                        <StatusBadge status={shift.status} />
-                        <span className="text-xs font-semibold text-ink-muted">
-                          {shift.requiredQualification}
-                        </span>
+        <section className="space-y-5">
+          <h2 className="font-display text-xl text-ink">Upcoming</h2>
+          {activeGroups.map((group) => (
+            <div key={`up-${group.key}`} className="space-y-3">
+              {showGroupHeaders && activeGroups.length > 1 ? (
+                <h3 className="text-sm font-semibold text-brand">{group.label}</h3>
+              ) : null}
+              {group.items.map((claim) => {
+                const shift = claim.shift;
+                return (
+                  <article
+                    key={claim.id}
+                    className="rounded-lg border border-line bg-paper p-5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <StatusBadge status={shift.status} />
+                          <span className="text-xs font-semibold text-ink-muted">
+                            {shift.requiredQualification}
+                          </span>
+                          <span className="text-xs font-semibold text-brand">
+                            {agencyLabel(claim)}
+                          </span>
+                        </div>
+                        <ButtonLink
+                          href={`/caregiver/shifts/${shift.id}`}
+                          variant="ghost"
+                          className="px-0 font-display text-xl text-ink"
+                        >
+                          {formatDate(shift.date)} · {formatTime(shift.startTime)}–
+                          {formatTime(shift.endTime)}
+                        </ButtonLink>
+                        <p className="text-sm">
+                          <AddressLink
+                            address={shift}
+                            multiline={false}
+                            showDirectionsHint={false}
+                            className="text-ink-muted"
+                          />
+                        </p>
                       </div>
-                      <ButtonLink
-                        href={`/caregiver/shifts/${shift.id}`}
-                        variant="ghost"
-                        className="px-0 font-display text-xl text-ink"
-                      >
-                        {formatDate(shift.date)} · {formatTime(shift.startTime)}–
-                        {formatTime(shift.endTime)}
-                      </ButtonLink>
-                      <p className="text-sm">
-                        <AddressLink
-                          address={shift}
-                          multiline={false}
-                          showDirectionsHint={false}
-                          className="text-ink-muted"
-                        />
-                      </p>
+                      <div className="text-right">
+                        <p className="font-display text-lg text-brand-deep">
+                          {formatMoney(Number(shift.payRate ?? 0))}/hr
+                        </p>
+                        <p className="text-xs text-ink-muted">
+                          {formatMoney(
+                            Number(shift.payRate ?? 0) * shiftHours(shift),
+                          )}{" "}
+                          estimated
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-display text-lg text-brand-deep">
-                        {formatMoney(Number(shift.payRate ?? 0))}/hr
-                      </p>
-                      <p className="text-xs text-ink-muted">
-                        {formatMoney(
-                          Number(shift.payRate ?? 0) * shiftHours(shift),
-                        )}{" "}
-                        estimated
-                      </p>
-                    </div>
-                  </div>
-                  {claim.status === "PENDING" ? (
-                    <div className="mt-4 border-t border-line pt-4">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={release.isPending}
-                        onClick={() => {
-                          if (
-                            confirmAction(
-                              "Release this shift claim? It will go back on the open board for others.",
-                            )
-                          ) {
-                            release.mutate(shift.id);
-                          }
-                        }}
-                      >
-                        <Undo2 className="h-4 w-4" aria-hidden />
-                        {release.isPending ? "Releasing…" : "Release shift"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <VisitActions
-                      shiftId={shift.id}
-                      shiftStatus={shift.status}
-                      claimStatus={claim.status}
-                      shift={shift}
-                    />
-                  )}
-                </article>
-              );
-            })}
-          </div>
+                    {claim.status === "PENDING" ? (
+                      <div className="mt-4 border-t border-line pt-4">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={release.isPending}
+                          onClick={() => {
+                            if (
+                              confirmAction(
+                                "Release this shift claim? It will go back on the open board for others.",
+                              )
+                            ) {
+                              release.mutate(shift.id);
+                            }
+                          }}
+                        >
+                          <Undo2 className="h-4 w-4" aria-hidden />
+                          {release.isPending ? "Releasing…" : "Release shift"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <VisitActions
+                        shiftId={shift.id}
+                        shiftStatus={shift.status}
+                        claimStatus={claim.status}
+                        shift={shift}
+                      />
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          ))}
         </section>
       ) : null}
 
       {history.length > 0 ? (
-        <section>
-          <h2 className="mb-3 font-display text-xl text-ink">History</h2>
-          <div className="divide-y divide-line rounded-lg border border-line bg-paper px-4">
-            {history.map((claim) => (
-              <div
-                key={claim.id}
-                className="flex flex-wrap items-center justify-between gap-3 py-4"
-              >
-                <div>
-                  <p className="font-medium">{formatDate(claim.shift.date)}</p>
-                  <p className="text-sm text-ink-muted">
-                    {claim.shift.city} · {claim.shift.requiredQualification}
-                  </p>
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {formatTime(claim.shift.startTime)} –{" "}
-                    {formatTime(claim.shift.endTime)} ·{" "}
-                    {shiftHours(claim.shift).toFixed(1)} hours
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-ink-muted">
-                  {claim.status}
-                </span>
+        <section className="space-y-4">
+          <h2 className="font-display text-xl text-ink">History</h2>
+          {historyGroups.map((group) => (
+            <div key={`hist-${group.key}`}>
+              {showGroupHeaders && historyGroups.length > 1 ? (
+                <h3 className="mb-2 text-sm font-semibold text-brand">
+                  {group.label}
+                </h3>
+              ) : null}
+              <div className="divide-y divide-line rounded-lg border border-line bg-paper px-4">
+                {group.items.map((claim) => (
+                  <div
+                    key={claim.id}
+                    className="flex flex-wrap items-center justify-between gap-3 py-4"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {formatDate(claim.shift.date)}
+                      </p>
+                      <p className="text-sm font-medium text-brand">
+                        {agencyLabel(claim)}
+                      </p>
+                      <p className="text-sm text-ink-muted">
+                        {claim.shift.city} · {claim.shift.requiredQualification}
+                      </p>
+                      <p className="mt-1 text-sm text-ink-muted">
+                        {formatTime(claim.shift.startTime)} –{" "}
+                        {formatTime(claim.shift.endTime)} ·{" "}
+                        {shiftHours(claim.shift).toFixed(1)} hours
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold text-ink-muted">
+                      {claim.status}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </section>
       ) : null}
       {claims.data ? (
@@ -398,5 +526,29 @@ export default function CaregiverMyShiftsPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-md border border-brand bg-brand/10 px-3 py-1.5 text-sm font-semibold text-brand-deep"
+          : "rounded-md border border-line bg-paper px-3 py-1.5 text-sm font-medium text-ink-muted"
+      }
+    >
+      {label}
+    </button>
   );
 }

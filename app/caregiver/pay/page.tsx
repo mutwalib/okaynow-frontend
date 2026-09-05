@@ -1,20 +1,38 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote } from "lucide-react";
 import { getMyPayEntries, getMyPaySummary } from "@/lib/api";
-import { formatDate, formatMoney, formatShiftWindow, defaultStatsDateRange } from "@/lib/format";
+import {
+  formatDate,
+  formatMoney,
+  formatShiftWindow,
+  defaultStatsDateRange,
+} from "@/lib/format";
 import { useListPagination } from "@/lib/pagination";
 import { Button } from "@/components/ui/button";
 import { ListPagination } from "@/components/ui/list-pagination";
-import { useState } from "react";
+import type { CaregiverPayEntry } from "@/lib/types";
+
+const FILTER_ALL = "all";
+const FILTER_INDEPENDENT = "independent";
+
+type AgencyFilter = typeof FILTER_ALL | typeof FILTER_INDEPENDENT | string;
+
+function matchesEntryFilter(entry: CaregiverPayEntry, filter: AgencyFilter) {
+  if (filter === FILTER_ALL) return true;
+  if (filter === FILTER_INDEPENDENT) return !entry.agencyId;
+  return entry.agencyId === filter;
+}
 
 export default function CaregiverPayPage() {
   const defaults = defaultStatsDateRange();
   const [periodStart, setPeriodStart] = useState(defaults.periodStart);
   const [periodEnd, setPeriodEnd] = useState(defaults.periodEnd);
+  const [agencyFilter, setAgencyFilter] = useState<AgencyFilter>(FILTER_ALL);
   const { page, setPage, pageSize, setPageSize } = useListPagination(
-    `${periodStart}|${periodEnd}`,
+    `${periodStart}|${periodEnd}|${agencyFilter}`,
   );
 
   const summary = useQuery({
@@ -24,9 +42,56 @@ export default function CaregiverPayPage() {
 
   const entries = useQuery({
     queryKey: ["caregiver-pay-entries", periodStart, periodEnd, page, pageSize],
-    queryFn: () => getMyPayEntries(periodStart, periodEnd, { page, size: pageSize }),
+    queryFn: () =>
+      getMyPayEntries(periodStart, periodEnd, { page, size: pageSize }),
   });
   const s = summary.data;
+
+  const agencyOptions = useMemo(() => {
+    const fromSummary = s?.byAgency ?? [];
+    if (fromSummary.length > 0) {
+      return fromSummary.map((slice) => ({
+        id: slice.agencyId ?? FILTER_INDEPENDENT,
+        name: slice.agencyDisplayName,
+      }));
+    }
+    return [];
+  }, [s]);
+
+  const activeSlice =
+    agencyFilter === FILTER_ALL
+      ? null
+      : (s?.byAgency ?? []).find((slice) =>
+          agencyFilter === FILTER_INDEPENDENT
+            ? slice.agencyId == null
+            : slice.agencyId === agencyFilter,
+        );
+
+  const display = activeSlice
+    ? {
+        shiftCount: activeSlice.shiftCount,
+        totalHours: activeSlice.totalHours,
+        totalEarned: activeSlice.totalEarned,
+        paid: activeSlice.paid,
+        pending: activeSlice.pending,
+      }
+    : s
+      ? {
+          shiftCount: s.shiftCount,
+          totalHours: s.totalHours,
+          totalEarned: s.totalEarned,
+          paid: s.paid,
+          pending: s.pending,
+        }
+      : null;
+
+  const filteredRows = useMemo(
+    () =>
+      (entries.data?.content ?? []).filter((row) =>
+        matchesEntryFilter(row, agencyFilter),
+      ),
+    [entries.data, agencyFilter],
+  );
 
   return (
     <div className="space-y-8">
@@ -39,8 +104,8 @@ export default function CaregiverPayPage() {
           Earnings
         </h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          What you earned for completed shifts, what’s been paid, and what’s
-          still due. Defaults to the last 7 days through today.
+          Earned shifts, hours, paid, and pending for completed visits. Defaults
+          to the last 7 days through today.
         </p>
       </section>
 
@@ -80,30 +145,47 @@ export default function CaregiverPayPage() {
         </Button>
       </div>
 
+      {agencyOptions.length > 1 ? (
+        <div className="flex flex-wrap gap-2">
+          <FilterChip
+            label="All"
+            active={agencyFilter === FILTER_ALL}
+            onClick={() => setAgencyFilter(FILTER_ALL)}
+          />
+          {agencyOptions.map((a) => (
+            <FilterChip
+              key={a.id}
+              label={a.name}
+              active={agencyFilter === a.id}
+              onClick={() => setAgencyFilter(a.id)}
+            />
+          ))}
+        </div>
+      ) : null}
+
       {summary.isLoading ? (
         <p className="text-sm text-ink-muted">Loading pay summary…</p>
       ) : summary.isError ? (
         <p className="text-sm text-danger">Could not load pay summary.</p>
-      ) : s ? (
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      ) : display ? (
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            { label: "Period", value: `${s.periodStart} → ${s.periodEnd}` },
-            { label: "Shifts", value: String(s.shiftCount) },
+            { label: "Earned shifts", value: String(display.shiftCount) },
             {
               label: "Hours",
-              value: Number(s.totalHours).toFixed(1),
+              value: Number(display.totalHours).toFixed(1),
             },
             {
               label: "Earned",
-              value: formatMoney(Number(s.totalEarned)),
+              value: formatMoney(Number(display.totalEarned)),
             },
             {
               label: "Paid",
-              value: formatMoney(Number(s.paid)),
+              value: formatMoney(Number(display.paid)),
             },
             {
-              label: "Due",
-              value: formatMoney(Number(s.pending)),
+              label: "Pending",
+              value: formatMoney(Number(display.pending)),
             },
           ].map((k) => (
             <div
@@ -121,83 +203,121 @@ export default function CaregiverPayPage() {
         </section>
       ) : null}
 
-      <section className="rounded-lg border border-line bg-paper overflow-x-auto">
-        <table className="w-full min-w-[880px] text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Time</th>
-              <th className="px-4 py-3">Hours</th>
-              <th className="px-4 py-3">Rate</th>
-              <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Pay period</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.data?.content.map((row) => {
-              const clientName = [row.clientFirstName, row.clientLastName]
-                .filter(Boolean)
-                .join(" ");
-              return (
-                <tr key={row.id} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 font-medium whitespace-nowrap">
-                    {formatDate(row.shiftDate)}
-                  </td>
-                  <td className="px-4 py-3">{clientName || "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-ink-muted">
-                    {formatShiftWindow(
-                      row.startTime,
-                      row.endTime,
-                      row.endsNextDay,
-                    )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {Number(row.hours).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {formatMoney(Number(row.payRate))}/hr
-                  </td>
-                  <td className="px-4 py-3 tabular-nums font-semibold">
-                    {formatMoney(Number(row.amount))}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        row.paymentStatus === "PAID"
-                          ? "font-semibold text-emerald-700"
+      {agencyFilter === FILTER_ALL && (s?.byAgency?.length ?? 0) > 1 ? (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl text-ink">By agency</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {s!.byAgency!.map((slice) => (
+              <div
+                key={slice.agencyId ?? "independent"}
+                className="rounded-lg border border-line bg-paper px-4 py-3"
+              >
+                <p className="font-semibold text-brand">
+                  {slice.agencyDisplayName}
+                </p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  {slice.shiftCount} shift{slice.shiftCount === 1 ? "" : "s"} ·{" "}
+                  {Number(slice.totalHours).toFixed(1)} hrs · earned{" "}
+                  {formatMoney(Number(slice.totalEarned))}
+                </p>
+                <p className="text-sm text-ink-muted">
+                  Paid {formatMoney(Number(slice.paid))} · Pending{" "}
+                  {formatMoney(Number(slice.pending))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl text-ink">Earned shifts</h2>
+        <div className="overflow-x-auto rounded-lg border border-line bg-paper">
+          <table className="w-full min-w-[960px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Agency</th>
+                <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">Hours</th>
+                <th className="px-4 py-3">Rate</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Pay period</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => {
+                const clientName = [row.clientFirstName, row.clientLastName]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <tr
+                    key={row.id}
+                    className="border-b border-line last:border-0"
+                  >
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">
+                      {formatDate(row.shiftDate)}
+                    </td>
+                    <td className="px-4 py-3 text-brand font-medium">
+                      {row.agencyDisplayName?.trim() || "Independent"}
+                    </td>
+                    <td className="px-4 py-3">{clientName || "—"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-ink-muted">
+                      {formatShiftWindow(
+                        row.startTime,
+                        row.endTime,
+                        row.endsNextDay,
+                      )}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {Number(row.hours).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {formatMoney(Number(row.payRate))}/hr
+                    </td>
+                    <td className="px-4 py-3 tabular-nums font-semibold">
+                      {formatMoney(Number(row.amount))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          row.paymentStatus === "PAID"
+                            ? "font-semibold text-emerald-700"
+                            : row.paymentStatus === "PROCESSING"
+                              ? "font-semibold text-sky-700"
+                              : "font-semibold text-amber-700"
+                        }
+                      >
+                        {row.paymentStatus === "PAID"
+                          ? "Paid"
                           : row.paymentStatus === "PROCESSING"
-                            ? "font-semibold text-sky-700"
-                            : "font-semibold text-amber-700"
-                      }
-                    >
-                      {row.paymentStatus === "PAID"
-                        ? "Paid"
-                        : row.paymentStatus === "PROCESSING"
-                          ? "Processing"
-                          : "Due"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">
-                    {formatDate(row.payPeriodStart)} →{" "}
-                    {formatDate(row.payPeriodEnd)}
+                            ? "Processing"
+                            : "Pending"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">
+                      {formatDate(row.payPeriodStart)} →{" "}
+                      {formatDate(row.payPeriodEnd)}
+                    </td>
+                  </tr>
+                );
+              })}
+              {!entries.isLoading && filteredRows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-10 text-center text-ink-muted"
+                  >
+                    No earned shifts in this period
+                    {agencyFilter !== FILTER_ALL ? " for this filter" : ""}.
                   </td>
                 </tr>
-              );
-            })}
-            {!entries.isLoading && (entries.data?.content.length ?? 0) === 0 ? (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-10 text-center text-ink-muted"
-                >
-                  No completed shifts in this period yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </section>
       {entries.data ? (
         <ListPagination
@@ -211,5 +331,29 @@ export default function CaregiverPayPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-md border border-brand bg-brand/10 px-3 py-1.5 text-sm font-semibold text-brand-deep"
+          : "rounded-md border border-line bg-paper px-3 py-1.5 text-sm font-medium text-ink-muted"
+      }
+    >
+      {label}
+    </button>
   );
 }

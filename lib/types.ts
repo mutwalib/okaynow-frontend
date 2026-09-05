@@ -352,6 +352,16 @@ export interface PagedResponse<T> {
   last: boolean;
 }
 
+export interface CaregiverAgencyPaySlice {
+  agencyId: string | null;
+  agencyDisplayName: string;
+  shiftCount: number;
+  totalHours: number;
+  totalEarned: number;
+  paid: number;
+  pending: number;
+}
+
 export interface CaregiverPaySummary {
   periodStart: string;
   periodEnd: string;
@@ -360,6 +370,7 @@ export interface CaregiverPaySummary {
   totalEarned: number;
   paid: number;
   pending: number;
+  byAgency?: CaregiverAgencyPaySlice[];
 }
 
 export interface CaregiverPayEntry {
@@ -378,6 +389,8 @@ export interface CaregiverPayEntry {
   payPeriodStart: string;
   payPeriodEnd: string;
   paidAt: string | null;
+  agencyId?: string | null;
+  agencyDisplayName?: string | null;
 }
 
 export type ClockMethod = "GPS" | "MANUAL";
