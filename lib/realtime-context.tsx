@@ -165,6 +165,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const invalidateBoards = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["shifts"] });
     void queryClient.invalidateQueries({ queryKey: ["shifts-open-preview"] });
+    void queryClient.invalidateQueries({ queryKey: ["caregiver-agency-open-shifts"] });
     void queryClient.invalidateQueries({ queryKey: ["owner-shifts"] });
     void queryClient.invalidateQueries({ queryKey: ["my-claims"] });
     void queryClient.invalidateQueries({ queryKey: ["owner-claims"] });
