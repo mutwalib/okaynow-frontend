@@ -46,8 +46,8 @@ export default function CaregiverPayPage() {
       getMyPayEntries(periodStart, periodEnd, { page, size: pageSize }),
   });
   const rosters = useQuery({
-    queryKey: ["my-rosters"],
-    queryFn: getMyRosters,
+    queryKey: ["caregiver-rosters"],
+    queryFn: getCaregiverRosters,
   });
   const s = summary.data;
 
