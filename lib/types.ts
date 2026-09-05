@@ -359,6 +359,7 @@ export interface CaregiverAgencyPaySlice {
   totalHours: number;
   totalEarned: number;
   paid: number;
+  processing: number;
   pending: number;
 }
 
@@ -369,6 +370,7 @@ export interface CaregiverPaySummary {
   totalHours: number;
   totalEarned: number;
   paid: number;
+  processing: number;
   pending: number;
   byAgency?: CaregiverAgencyPaySlice[];
 }

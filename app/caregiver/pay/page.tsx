@@ -73,6 +73,7 @@ export default function CaregiverPayPage() {
         totalHours: activeSlice.totalHours,
         totalEarned: activeSlice.totalEarned,
         paid: activeSlice.paid,
+        processing: activeSlice.processing,
         pending: activeSlice.pending,
       }
     : s
@@ -81,6 +82,7 @@ export default function CaregiverPayPage() {
           totalHours: s.totalHours,
           totalEarned: s.totalEarned,
           paid: s.paid,
+          processing: s.processing,
           pending: s.pending,
         }
       : null;
@@ -104,8 +106,8 @@ export default function CaregiverPayPage() {
           Earnings
         </h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Earned shifts, hours, paid, and pending for completed visits. Defaults
-          to the last 7 days through today.
+          Earned shifts, hours, paid, processing, and pending for completed
+          visits. Defaults to the last 7 days through today.
         </p>
       </section>
 
@@ -168,7 +170,7 @@ export default function CaregiverPayPage() {
       ) : summary.isError ? (
         <p className="text-sm text-danger">Could not load pay summary.</p>
       ) : display ? (
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
             { label: "Earned shifts", value: String(display.shiftCount) },
             {
@@ -182,6 +184,10 @@ export default function CaregiverPayPage() {
             {
               label: "Paid",
               value: formatMoney(Number(display.paid)),
+            },
+            {
+              label: "Processing",
+              value: formatMoney(Number(display.processing ?? 0)),
             },
             {
               label: "Pending",
@@ -221,7 +227,8 @@ export default function CaregiverPayPage() {
                   {formatMoney(Number(slice.totalEarned))}
                 </p>
                 <p className="text-sm text-ink-muted">
-                  Paid {formatMoney(Number(slice.paid))} · Pending{" "}
+                  Paid {formatMoney(Number(slice.paid))} · Processing{" "}
+                  {formatMoney(Number(slice.processing ?? 0))} · Pending{" "}
                   {formatMoney(Number(slice.pending))}
                 </p>
               </div>
