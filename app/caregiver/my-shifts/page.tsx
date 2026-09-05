@@ -9,7 +9,7 @@ import {
   getVisitByShift,
   releaseShift,
 } from "@/lib/api";
-import { captureGps } from "@/lib/geo";
+import { captureGps, EVV_GEOFENCE_FEET, isWithinGeofence } from "@/lib/geo";
 import { AddressLink } from "@/components/address-link";
 import { EmptyState, LoadingBlock } from "@/components/shift-card";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -35,7 +35,13 @@ function VisitActions({
   shiftId: string;
   shiftStatus: string;
   claimStatus: string;
-  shift: { date: string; startTime: string; endTime: string };
+  shift: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    lat?: number | null;
+    lng?: number | null;
+  };
 }) {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -56,6 +62,21 @@ function VisitActions({
   const clockIn = useMutation({
     mutationFn: async () => {
       const gps = await captureGps();
+      if (gps.lat == null || gps.lng == null) {
+        throw new Error("Location permission is required to clock in");
+      }
+      if (
+        shift.lat != null &&
+        shift.lng != null &&
+        !isWithinGeofence(
+          { lat: gps.lat, lng: gps.lng },
+          { lat: shift.lat, lng: shift.lng },
+        )
+      ) {
+        throw new Error(
+          `You must be within ${EVV_GEOFENCE_FEET} ft of the visit address to clock in`,
+        );
+      }
       return clockInToShift(shiftId, gps);
     },
     onSuccess: () => {
@@ -68,6 +89,21 @@ function VisitActions({
   const clockOut = useMutation({
     mutationFn: async () => {
       const gps = await captureGps();
+      if (gps.lat == null || gps.lng == null) {
+        throw new Error("Location permission is required to clock out");
+      }
+      if (
+        shift.lat != null &&
+        shift.lng != null &&
+        !isWithinGeofence(
+          { lat: gps.lat, lng: gps.lng },
+          { lat: shift.lat, lng: shift.lng },
+        )
+      ) {
+        throw new Error(
+          `You must be within ${EVV_GEOFENCE_FEET} ft of the visit address to clock out`,
+        );
+      }
       return clockOutOfShift(shiftId, gps);
     },
     onSuccess: () => {
