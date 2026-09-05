@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote } from "lucide-react";
-import { getMyPayEntries, getMyPaySummary } from "@/lib/api";
+import { getMyPayEntries, getMyPaySummary, getMyRosters } from "@/lib/api";
 import {
   formatDate,
   formatMoney,
@@ -45,18 +45,34 @@ export default function CaregiverPayPage() {
     queryFn: () =>
       getMyPayEntries(periodStart, periodEnd, { page, size: pageSize }),
   });
+  const rosters = useQuery({
+    queryKey: ["my-rosters"],
+    queryFn: getMyRosters,
+  });
   const s = summary.data;
 
   const agencyOptions = useMemo(() => {
-    const fromSummary = s?.byAgency ?? [];
-    if (fromSummary.length > 0) {
-      return fromSummary.map((slice) => ({
-        id: slice.agencyId ?? FILTER_INDEPENDENT,
-        name: slice.agencyDisplayName,
-      }));
+    const map = new Map<string, string>();
+    for (const r of rosters.data ?? []) {
+      if (r.status === "ACTIVE" || r.status === "SUSPENDED") {
+        map.set(r.agencyId, r.agencyDisplayName?.trim() || "Agency");
+      }
     }
-    return [];
-  }, [s]);
+    for (const slice of s?.byAgency ?? []) {
+      if (slice.agencyId) {
+        map.set(slice.agencyId, slice.agencyDisplayName?.trim() || "Agency");
+      }
+    }
+    for (const e of entries.data?.content ?? []) {
+      if (e.agencyId) {
+        map.set(e.agencyId, e.agencyDisplayName?.trim() || "Agency");
+      }
+    }
+    const agencies = Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { agencies, show: agencies.length > 0 };
+  }, [rosters.data, s, entries.data]);
 
   const activeSlice =
     agencyFilter === FILTER_ALL
@@ -67,25 +83,37 @@ export default function CaregiverPayPage() {
             : slice.agencyId === agencyFilter,
         );
 
-  const display = activeSlice
-    ? {
-        shiftCount: activeSlice.shiftCount,
-        totalHours: activeSlice.totalHours,
-        totalEarned: activeSlice.totalEarned,
-        paid: activeSlice.paid,
-        processing: activeSlice.processing,
-        pending: activeSlice.pending,
-      }
-    : s
-      ? {
-          shiftCount: s.shiftCount,
-          totalHours: s.totalHours,
-          totalEarned: s.totalEarned,
-          paid: s.paid,
-          processing: s.processing,
-          pending: s.pending,
-        }
-      : null;
+  const emptySlice = {
+    shiftCount: 0,
+    totalHours: 0,
+    totalEarned: 0,
+    paid: 0,
+    processing: 0,
+    pending: 0,
+  };
+
+  const display =
+    agencyFilter !== FILTER_ALL
+      ? activeSlice
+        ? {
+            shiftCount: activeSlice.shiftCount,
+            totalHours: activeSlice.totalHours,
+            totalEarned: activeSlice.totalEarned,
+            paid: activeSlice.paid,
+            processing: activeSlice.processing,
+            pending: activeSlice.pending,
+          }
+        : emptySlice
+      : s
+        ? {
+            shiftCount: s.shiftCount,
+            totalHours: s.totalHours,
+            totalEarned: s.totalEarned,
+            paid: s.paid,
+            processing: s.processing,
+            pending: s.pending,
+          }
+        : null;
 
   const filteredRows = useMemo(
     () =>
@@ -147,14 +175,19 @@ export default function CaregiverPayPage() {
         </Button>
       </div>
 
-      {agencyOptions.length > 1 ? (
+      {agencyOptions.show ? (
         <div className="flex flex-wrap gap-2">
           <FilterChip
             label="All"
             active={agencyFilter === FILTER_ALL}
             onClick={() => setAgencyFilter(FILTER_ALL)}
           />
-          {agencyOptions.map((a) => (
+          <FilterChip
+            label="Independent"
+            active={agencyFilter === FILTER_INDEPENDENT}
+            onClick={() => setAgencyFilter(FILTER_INDEPENDENT)}
+          />
+          {agencyOptions.agencies.map((a) => (
             <FilterChip
               key={a.id}
               label={a.name}
