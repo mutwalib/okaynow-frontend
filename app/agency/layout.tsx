@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Building2,
   CalendarDays,
   ClipboardList,
+  FileBarChart2,
   House,
   Link2,
   Settings,
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/agency/shifts", label: "Shifts", icon: ClipboardList },
   { href: "/agency/roster", label: "Roster", icon: Users },
   { href: "/agency/connections", label: "Home connections", icon: Link2 },
+  { href: "/agency/reports", label: "Reports", icon: FileBarChart2 },
   { href: "/agency/settings", label: "Settings", icon: Settings },
 ];
 

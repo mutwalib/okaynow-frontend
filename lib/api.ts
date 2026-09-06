@@ -1139,6 +1139,75 @@ export async function downloadAgencyHoursExport(from: string, to: string) {
   return res.blob();
 }
 
+export type AgencyReportType = "FINANCE" | "SHIFTS" | "CLAIMS";
+
+export type AgencyReportFormat = "pdf" | "xlsx";
+
+/** Download a branded agency report (PDF or Excel) scoped to the caller's tenant. */
+export async function downloadAgencyReport(
+  type: AgencyReportType,
+  format: AgencyReportFormat,
+  filters: Record<string, string | number | boolean | undefined | null> = {},
+  retry = true,
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("format", format);
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+
+  const headers = new Headers();
+  const token = getAccessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const path = `/api/agencies/me/reports/${type}?${params.toString()}`;
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { headers });
+  } catch {
+    throw new ApiError(
+      `Could not reach API at ${API_BASE_URL}. Is the backend running?`,
+      0,
+    );
+  }
+
+  if (res.status === 401 && retry) {
+    const next = await refreshAccessToken();
+    if (next) {
+      return downloadAgencyReport(type, format, filters, false);
+    }
+  }
+
+  if (!res.ok) {
+    let message = `Report failed with status ${res.status}`;
+    try {
+      const body = await res.json();
+      message = body.message || message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  const filename =
+    match?.[1] ||
+    `okaynow-${type.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.${format === "pdf" ? "pdf" : "xlsx"}`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function getHomeAgencyConnections() {
   return request<HomeAgencyConnection[]>("/api/home/agencies/connected");
 }
