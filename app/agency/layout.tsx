@@ -9,7 +9,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { AgencyAccessGate } from "@/components/agency-access-gate";
 import { RoleGuard } from "@/components/role-guard";
 
 const NAV = [
@@ -30,9 +30,7 @@ export default function AgencyLayout({
 }) {
   return (
     <RoleGuard allow={["AGENCY_ADMIN"]}>
-      <AppShell role="AGENCY_ADMIN" nav={NAV}>
-        {children}
-      </AppShell>
+      <AgencyAccessGate nav={NAV}>{children}</AgencyAccessGate>
     </RoleGuard>
   );
 }

@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Building2, Link2 } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
+import { AlertTriangle, Building2, Link2, PartyPopper, X } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { getMyAgency } from "@/lib/api";
-import { SUBSCRIPTION_PLAN_LABEL } from "@/lib/types";
+import { SUBSCRIPTION_PLAN_LABEL, SUBSCRIPTION_STATUS_LABEL } from "@/lib/types";
+
+function welcomeStorageKey(agencyId: string) {
+  return `okaynow.agency.welcome.dismissed.${agencyId}`;
+}
 
 export default function AgencyHomePage() {
   const agency = useQuery({
@@ -14,6 +19,40 @@ export default function AgencyHomePage() {
   });
 
   const data = agency.data;
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (!data?.id || !data.accessAllowsConsole || !data.approvedAt) {
+      setShowWelcome(false);
+      return;
+    }
+    try {
+      if (localStorage.getItem(welcomeStorageKey(data.id))) {
+        setShowWelcome(false);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    const approvedMs = Date.parse(data.approvedAt);
+    if (!Number.isFinite(approvedMs)) {
+      setShowWelcome(false);
+      return;
+    }
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    setShowWelcome(Date.now() - approvedMs < sevenDays);
+  }, [data]);
+
+  function dismissWelcome() {
+    if (data?.id) {
+      try {
+        localStorage.setItem(welcomeStorageKey(data.id), "1");
+      } catch {
+        /* ignore */
+      }
+    }
+    setShowWelcome(false);
+  }
 
   return (
     <div className="space-y-8">
@@ -28,6 +67,48 @@ export default function AgencyHomePage() {
           Manage your subscription, directory listing, and home connections.
         </p>
       </section>
+
+      {showWelcome && data ? (
+        <div className="relative overflow-hidden rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 p-5 text-teal-950">
+          <button
+            type="button"
+            onClick={dismissWelcome}
+            className="absolute right-3 top-3 rounded p-1 text-teal-800/70 hover:bg-white/50 hover:text-teal-950"
+            aria-label="Dismiss welcome"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+          <div className="flex items-start gap-3 pr-8">
+            <PartyPopper className="mt-0.5 h-6 w-6 shrink-0 text-teal-700" aria-hidden />
+            <div>
+              <p className="font-display text-xl">Welcome — you&apos;re approved</p>
+              <p className="mt-1 text-sm leading-relaxed">
+                {data.displayName} is live on OkayNow. You&apos;re on the{" "}
+                <span className="font-semibold">
+                  {SUBSCRIPTION_PLAN_LABEL[data.subscriptionPlan]}
+                </span>{" "}
+                plan
+                {data.subscriptionStatus === "TRIAL" && data.subscriptionPeriodEnd
+                  ? ` (trial through ${new Date(data.subscriptionPeriodEnd).toLocaleDateString()})`
+                  : null}
+                . Invite caregivers to your roster, connect with homes, and set up
+                your directory profile.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <ButtonLink href="/agency/roster" size="sm">
+                  Invite caregivers
+                </ButtonLink>
+                <ButtonLink href="/agency/settings" size="sm" variant="secondary">
+                  Directory profile
+                </ButtonLink>
+                <Button type="button" size="sm" variant="ghost" onClick={dismissWelcome}>
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {data && !data.subscriptionAllowsWrites ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
@@ -78,7 +159,9 @@ export default function AgencyHomePage() {
             </div>
             <div>
               <dt className="text-ink-muted">Status</dt>
-              <dd className="font-medium">{data.subscriptionStatus}</dd>
+              <dd className="font-medium">
+                {SUBSCRIPTION_STATUS_LABEL[data.subscriptionStatus]}
+              </dd>
             </div>
             <div>
               <dt className="text-ink-muted">Directory</dt>

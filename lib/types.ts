@@ -556,7 +556,28 @@ export type SubscriptionStatus =
   | "EXPIRED"
   | "CANCELLED";
 
+export const SUBSCRIPTION_STATUS_LABEL: Record<SubscriptionStatus, string> = {
+  TRIAL: "Trial",
+  ACTIVE: "Active",
+  PAST_DUE: "Past due",
+  EXPIRED: "Expired",
+  CANCELLED: "Cancelled",
+};
+
 export type SubscriptionPlan = "STARTER" | "PROFESSIONAL" | "FEATURED";
+
+export type AgencyAccessStatus =
+  | "PENDING_APPROVAL"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "BLOCKED";
+
+export const AGENCY_ACCESS_STATUS_LABEL: Record<AgencyAccessStatus, string> = {
+  PENDING_APPROVAL: "Pending approval",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  BLOCKED: "Blocked",
+};
 
 export const SUBSCRIPTION_PLAN_LABEL: Record<SubscriptionPlan, string> = {
   STARTER: "Starter",
@@ -683,6 +704,10 @@ export interface AgencyMe {
   stripeConfigured: boolean;
   stripeConnectReady: boolean;
   subscriptionAllowsWrites: boolean;
+  accessStatus: AgencyAccessStatus;
+  accessStatusNote: string | null;
+  approvedAt: string | null;
+  accessAllowsConsole: boolean;
 }
 
 export type ShiftRoutingMode = "INBOX_FIRST" | "AUTO_BROADCAST";
