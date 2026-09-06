@@ -867,6 +867,63 @@ export interface AgencyRosterMemberDetail {
   ratingCount: number | null;
 }
 
+export type PaymentStatus = "PENDING" | "PROCESSING" | "PAID";
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  PENDING: "Pending",
+  PROCESSING: "Processing",
+  PAID: "Paid",
+};
+
+export interface AgencyRosterHubSummary {
+  upcomingShifts: number;
+  inProgressShifts: number;
+  completedShifts: number;
+  unfulfilledShifts: number;
+  pendingPayCount: number;
+  pendingPayAmount: number;
+}
+
+export interface AgencyRosterScheduleItem {
+  shiftId: string;
+  claimId: string;
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  city: string | null;
+  requiredQualification: Qualification;
+  shiftStatus: ShiftStatus;
+  claimStatus: ShiftClaimStatus;
+  fulfilled: boolean;
+  filledSlots: number;
+  requiredHeadcount: number;
+  callToAction: string | null;
+}
+
+export interface AgencyRosterTimesheetItem {
+  settlementId: string;
+  shiftId: string;
+  shiftDate: string;
+  hours: number;
+  payRate: number;
+  caregiverAmount: number;
+  caregiverPaymentStatus: PaymentStatus;
+  clientPaymentStatus: PaymentStatus;
+  payPeriodStart: string | null;
+  payPeriodEnd: string | null;
+  caregiverPaidAt: string | null;
+  callToAction: string | null;
+}
+
+export interface AgencyRosterHub {
+  member: AgencyRosterMemberDetail;
+  from: string;
+  to: string;
+  summary: AgencyRosterHubSummary;
+  schedule: AgencyRosterScheduleItem[];
+  timesheets: AgencyRosterTimesheetItem[];
+}
+
 export type CaregiverAgencyInterestStatus =
   | "PENDING"
   | "ACCEPTED"

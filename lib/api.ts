@@ -38,7 +38,9 @@ import type {
   AgencyShiftRequestInbox,
   AgencyRosterEntry,
   AgencyRosterMemberDetail,
+  AgencyRosterHub,
   RosterPayClassification,
+  PaymentStatus,
   SubscriptionPlanCatalogEntry,
   AgencyTenantSettings,
   ConnectStatus,
@@ -1256,6 +1258,29 @@ export function removeAgencyRosterMember(rosterId: string) {
 
 export function getAgencyRosterMember(rosterId: string) {
   return request<AgencyRosterMemberDetail>(`/api/agencies/me/roster/${rosterId}`);
+}
+
+export function getAgencyRosterHub(rosterId: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const q = params.toString();
+  return request<AgencyRosterHub>(
+    `/api/agencies/me/roster/${rosterId}/hub${q ? `?${q}` : ""}`,
+  );
+}
+
+export function markAgencyCaregiverPayment(
+  settlementId: string,
+  status: PaymentStatus,
+) {
+  return request<{ caregiverPaymentStatus: PaymentStatus }>(
+    `/api/agencies/me/settlements/${settlementId}/caregiver-payment`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    },
+  );
 }
 
 export function uploadCaregiverCv(file: File) {

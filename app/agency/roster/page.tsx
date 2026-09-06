@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, UserRound } from "lucide-react";
 import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import {
   acceptAgencyCaregiverInterest,
@@ -287,9 +288,8 @@ export default function AgencyRosterPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Caregivers</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Agency roster</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Search caregivers by email, set their agreed hourly offer, invite them, and
-          revise or remove as needed. Caregivers see this offer on shifts — not your
-          agency default rate.
+          Invite caregivers, set pay offers, and open each person&apos;s schedule,
+          timesheets, and payment status.
         </p>
         <div className="mt-4 max-w-xl">
           <CaregiverVerificationDisclaimer audience="agency" />
@@ -579,7 +579,16 @@ export default function AgencyRosterPage() {
                     : ""}
                 </p>
               </div>
-              <span className="text-xs text-brand-deep">View profile →</span>
+              <span className="flex flex-col items-end gap-1 text-xs text-brand-deep">
+                <span>Profile</span>
+                <Link
+                  href={`/agency/roster/${m.id}`}
+                  className="font-medium underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Schedule &amp; pay →
+                </Link>
+              </span>
             </button>
           ))}
           {!roster.isLoading && (roster.data?.length ?? 0) === 0 ? (
@@ -642,6 +651,13 @@ export default function AgencyRosterPage() {
                     </span>
                   </p>
                 </div>
+                <ButtonLink
+                  href={`/agency/roster/${detail.rosterId}`}
+                  size="sm"
+                  className="ml-auto"
+                >
+                  Schedule &amp; timesheets
+                </ButtonLink>
               </div>
 
               <dl className="space-y-1.5">
