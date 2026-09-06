@@ -186,19 +186,21 @@ export default function CaregiverShiftDetailPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-line bg-paper p-5">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Your pay
+      {!shift.agencyId ? (
+        <div className="rounded-lg border border-line bg-paper p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Your pay
+              </p>
+              <PayRateBadge payRate={shift.payRate} />
+            </div>
+            <p className="text-sm text-ink-muted">
+              Est. {formatMoney(Number(shift.payRate ?? 0) * hours)} for this shift
             </p>
-            <PayRateBadge payRate={shift.payRate} />
           </div>
-          <p className="text-sm text-ink-muted">
-            Est. {formatMoney(Number(shift.payRate ?? 0) * hours)} for this shift
-          </p>
         </div>
-      </div>
+      ) : null}
 
       <div>
         <h2 className="font-display text-xl text-ink">Location</h2>

@@ -144,6 +144,16 @@ export function ShiftCard({
                   ) : null}
                 </div>
               </>
+            ) : shift.agencyId ? (
+              <div className="mt-1 text-xs text-ink-muted">
+                {hours.toFixed(1)} hrs
+                {(shift.requiredHeadcount ?? 1) > 1 ? (
+                  <>
+                    {" "}
+                    · {shift.filledSlots ?? 0}/{shift.requiredHeadcount} caregivers
+                  </>
+                ) : null}
+              </div>
             ) : (
               <>
                 <PayRateBadge payRate={shift.payRate} />

@@ -165,8 +165,7 @@ export function ShiftBoard({
     for (const s of agencyOpen.data ?? []) {
       if (qualification && s.requiredQualification !== qualification) continue;
       if (dateFrom && s.date < dateFrom) continue;
-      if (minPay && Number(s.payRate) < Number(minPay)) continue;
-      if (maxPay && Number(s.payRate) > Number(maxPay)) continue;
+      // Agency shift pay is not shown to caregivers — don't apply marketplace pay filters.
       byId.set(s.id, s);
     }
     return Array.from(byId.values()).sort((a, b) => {

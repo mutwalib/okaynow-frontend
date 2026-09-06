@@ -425,15 +425,23 @@ export default function CaregiverMyShiftsPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-display text-lg text-brand-deep">
-                          {formatMoney(Number(shift.payRate ?? 0))}/hr
-                        </p>
-                        <p className="text-xs text-ink-muted">
-                          {formatMoney(
-                            Number(shift.payRate ?? 0) * shiftHours(shift),
-                          )}{" "}
-                          estimated
-                        </p>
+                        {!shift.agencyId && shift.payRate != null ? (
+                          <>
+                            <p className="font-display text-lg text-brand-deep">
+                              {formatMoney(Number(shift.payRate))}/hr
+                            </p>
+                            <p className="text-xs text-ink-muted">
+                              {formatMoney(
+                                Number(shift.payRate) * shiftHours(shift),
+                              )}{" "}
+                              estimated
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-ink-muted">
+                            {shiftHours(shift).toFixed(1)} hrs
+                          </p>
+                        )}
                       </div>
                     </div>
                     {claim.status === "PENDING" ? (
