@@ -8,12 +8,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { Button } from "@/components/ui/button";
-
-function offerLine(rate: number | null, note: string | null) {
-  if (rate == null) return null;
-  const base = `The offer is $${Number(rate).toFixed(2)} per hour`;
-  return note ? `${base} (${note}).` : `${base}.`;
-}
+import { formatPayOffer } from "@/lib/types";
 
 export default function CaregiverRosterInvitesPage() {
   const { showToast } = useToast();
@@ -41,7 +36,7 @@ export default function CaregiverRosterInvitesPage() {
         <h1 className="mt-1 font-display text-3xl text-ink">Roster invites</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
           Home care agencies invite you to their roster with an agreed hourly offer
-          before assigning shifts. Accept an invite to receive work from that agency.
+          (W-2 or not W-2) before assigning shifts.
         </p>
       </section>
 
@@ -68,9 +63,9 @@ export default function CaregiverRosterInvitesPage() {
                   <Mail className="h-3.5 w-3.5" aria-hidden />
                   Roster invitation
                 </p>
-                {offerLine(invite.agreedPayRate, invite.payOfferNote) ? (
+                {formatPayOffer(invite.agreedPayRate, invite.payClassification) ? (
                   <p className="mt-2 text-sm font-medium text-ink">
-                    {offerLine(invite.agreedPayRate, invite.payOfferNote)}
+                    {formatPayOffer(invite.agreedPayRate, invite.payClassification)}
                   </p>
                 ) : null}
                 {invite.inviteMessage ? (

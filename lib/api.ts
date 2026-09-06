@@ -38,6 +38,7 @@ import type {
   AgencyShiftRequestInbox,
   AgencyRosterEntry,
   AgencyRosterMemberDetail,
+  RosterPayClassification,
   SubscriptionPlanCatalogEntry,
   AgencyTenantSettings,
   ConnectStatus,
@@ -1207,15 +1208,16 @@ export function getAgencyRoster() {
 export function inviteAgencyRosterCaregiver(
   email: string,
   payRate: number,
-  options?: { message?: string; payOfferNote?: string },
+  payClassification: RosterPayClassification,
+  options?: { message?: string },
 ) {
   return request<AgencyRosterEntry>("/api/agencies/me/roster/invite", {
     method: "POST",
     body: JSON.stringify({
       email,
       payRate,
+      payClassification,
       message: options?.message ?? null,
-      payOfferNote: options?.payOfferNote ?? null,
     }),
   });
 }
@@ -1223,13 +1225,13 @@ export function inviteAgencyRosterCaregiver(
 export function updateAgencyRosterPayOffer(
   rosterId: string,
   payRate: number,
-  payOfferNote?: string,
+  payClassification: RosterPayClassification,
 ) {
   return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/pay-offer`, {
     method: "PATCH",
     body: JSON.stringify({
       payRate,
-      payOfferNote: payOfferNote ?? null,
+      payClassification,
     }),
   });
 }
@@ -1355,7 +1357,7 @@ export function getAgencyCaregiverInterests() {
 export function acceptAgencyCaregiverInterest(
   interestId: string,
   payRate: number,
-  payOfferNote?: string,
+  payClassification: RosterPayClassification,
 ) {
   return request<CaregiverAgencyInterest>(
     `/api/agencies/me/caregiver-interests/${interestId}/accept`,
@@ -1363,7 +1365,7 @@ export function acceptAgencyCaregiverInterest(
       method: "POST",
       body: JSON.stringify({
         payRate,
-        payOfferNote: payOfferNote ?? null,
+        payClassification,
       }),
     },
   );

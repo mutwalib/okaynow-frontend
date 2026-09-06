@@ -11,14 +11,9 @@ import { useToast } from "@/lib/toast-context";
 import { Button, ButtonLink } from "@/components/ui/button";
 import {
   AGENCY_CAREGIVER_STATUS_LABEL,
+  formatPayOffer,
   formatStatusLabel,
 } from "@/lib/types";
-
-function offerLine(rate: number | null, note: string | null) {
-  if (rate == null) return null;
-  const base = `The offer is $${Number(rate).toFixed(2)} per hour`;
-  return note ? `${base} (${note}).` : `${base}.`;
-}
 
 export default function CaregiverRostersPage() {
   const { showToast } = useToast();
@@ -74,8 +69,10 @@ export default function CaregiverRostersPage() {
             <p className="text-sm text-ink-muted">
               Status: {formatStatusLabel(m.status, AGENCY_CAREGIVER_STATUS_LABEL)}
             </p>
-            {offerLine(m.agreedPayRate, m.payOfferNote) ? (
-              <p className="mt-2 text-sm text-ink">{offerLine(m.agreedPayRate, m.payOfferNote)}</p>
+            {formatPayOffer(m.agreedPayRate, m.payClassification) ? (
+              <p className="mt-2 text-sm text-ink">
+                {formatPayOffer(m.agreedPayRate, m.payClassification)}
+              </p>
             ) : null}
           </article>
         ))}
@@ -95,9 +92,9 @@ export default function CaregiverRostersPage() {
                   <Mail className="h-3.5 w-3.5" aria-hidden />
                   Roster invitation
                 </p>
-                {offerLine(invite.agreedPayRate, invite.payOfferNote) ? (
+                {formatPayOffer(invite.agreedPayRate, invite.payClassification) ? (
                   <p className="mt-2 text-sm font-medium text-ink">
-                    {offerLine(invite.agreedPayRate, invite.payOfferNote)}
+                    {formatPayOffer(invite.agreedPayRate, invite.payClassification)}
                   </p>
                 ) : null}
                 {invite.inviteMessage ? (

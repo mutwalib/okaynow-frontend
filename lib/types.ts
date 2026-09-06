@@ -741,9 +741,31 @@ export type ShiftRequestAgencyStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export type AgencyCaregiverStatus = "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED";
 
+export type RosterPayClassification = "W2" | "NON_W2";
+
+export const ROSTER_PAY_CLASSIFICATION_LABEL: Record<RosterPayClassification, string> = {
+  W2: "W-2 — agency runs payroll with taxes",
+  NON_W2: "Not W-2",
+};
+
+export function formatPayOffer(
+  rate: number | null | undefined,
+  classification: RosterPayClassification | null | undefined,
+): string | null {
+  if (rate == null || !Number.isFinite(Number(rate))) return null;
+  const amount = Number(rate).toFixed(2);
+  if (classification === "W2") {
+    return `The offer is $${amount} per hour as W-2 (agency runs payroll with taxes).`;
+  }
+  if (classification === "NON_W2") {
+    return `The offer is $${amount} per hour (not W-2).`;
+  }
+  return `The offer is $${amount} per hour.`;
+}
+
 export const AGENCY_CAREGIVER_STATUS_LABEL: Record<AgencyCaregiverStatus, string> = {
-  INVITED: "Invite pending",
-  ACTIVE: "Active",
+  INVITED: "Pending",
+  ACTIVE: "Accepted",
   SUSPENDED: "Suspended",
   REMOVED: "Removed",
 };
@@ -806,7 +828,7 @@ export interface AgencyRosterEntry {
   status: AgencyCaregiverStatus;
   inviteMessage: string | null;
   agreedPayRate: number | null;
-  payOfferNote: string | null;
+  payClassification: RosterPayClassification | null;
   payOfferUpdatedAt: string | null;
   invitedAt: string;
   respondedAt: string | null;
@@ -817,7 +839,7 @@ export interface AgencyRosterMemberDetail {
   rosterStatus: AgencyCaregiverStatus;
   inviteMessage: string | null;
   agreedPayRate: number | null;
-  payOfferNote: string | null;
+  payClassification: RosterPayClassification | null;
   payOfferUpdatedAt: string | null;
   invitedAt: string;
   respondedAt: string | null;
@@ -879,5 +901,6 @@ export interface CaregiverLookup {
   state: string | null;
   serviceRadiusMiles: number | null;
   alreadyOnRoster: boolean;
+  canReinvite: boolean;
   rosterStatus: string | null;
 }

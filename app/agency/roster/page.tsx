@@ -24,10 +24,12 @@ import { useToast } from "@/lib/toast-context";
 import {
   AGENCY_CAREGIVER_STATUS_LABEL,
   QUALIFICATION_LABELS,
+  ROSTER_PAY_CLASSIFICATION_LABEL,
   USER_STATUS_LABEL,
+  formatPayOffer,
   formatStatusLabel,
 } from "@/lib/types";
-import type { CaregiverLookup } from "@/lib/types";
+import type { CaregiverLookup, RosterPayClassification } from "@/lib/types";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (value == null || value === "") return null;
@@ -39,10 +41,52 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function formatOffer(rate: number | null | undefined, note: string | null | undefined) {
-  if (rate == null) return null;
-  const base = `$${Number(rate).toFixed(2)}/hr`;
-  return note ? `${base} (${note})` : base;
+function PayClassificationPicker({
+  value,
+  onChange,
+  name,
+}: {
+  value: RosterPayClassification | "";
+  onChange: (next: RosterPayClassification) => void;
+  name: string;
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-ink">
+        Payroll type <span className="text-danger">*</span>
+      </legend>
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-white p-3 text-sm">
+        <input
+          type="radio"
+          name={name}
+          className="mt-1"
+          checked={value === "W2"}
+          onChange={() => onChange("W2")}
+        />
+        <span>
+          <span className="block font-medium">W-2</span>
+          <span className="block text-ink-muted">
+            Agency runs payroll with taxes
+          </span>
+        </span>
+      </label>
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-white p-3 text-sm">
+        <input
+          type="radio"
+          name={name}
+          className="mt-1"
+          checked={value === "NON_W2"}
+          onChange={() => onChange("NON_W2")}
+        />
+        <span>
+          <span className="block font-medium">Not W-2</span>
+          <span className="block text-ink-muted">
+            Other arrangement (not agency W-2 payroll)
+          </span>
+        </span>
+      </label>
+    </fieldset>
+  );
 }
 
 export default function AgencyRosterPage() {
@@ -51,14 +95,18 @@ export default function AgencyRosterPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [payRate, setPayRate] = useState("");
-  const [payOfferNote, setPayOfferNote] = useState("including taxes");
+  const [payClassification, setPayClassification] = useState<
+    RosterPayClassification | ""
+  >("W2");
   const [lookup, setLookup] = useState<CaregiverLookup | null>(null);
   const [selectedLookup, setSelectedLookup] = useState(false);
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(null);
   const [reviseRate, setReviseRate] = useState("");
-  const [reviseNote, setReviseNote] = useState("");
-  const [interestRates, setInterestRates] = useState<
-    Record<string, { rate: string; note: string }>
+  const [reviseClassification, setReviseClassification] = useState<
+    RosterPayClassification | ""
+  >("W2");
+  const [interestOffers, setInterestOffers] = useState<
+    Record<string, { rate: string; classification: RosterPayClassification | "" }>
   >({});
 
   const roster = useQuery({
@@ -80,7 +128,7 @@ export default function AgencyRosterPage() {
     setReviseRate(
       member.data.agreedPayRate != null ? String(member.data.agreedPayRate) : "",
     );
-    setReviseNote(member.data.payOfferNote ?? "");
+    setReviseClassification(member.data.payClassification ?? "W2");
   }, [member.data]);
 
   const invalidateRoster = () => {
@@ -89,17 +137,19 @@ export default function AgencyRosterPage() {
   };
 
   const invite = useMutation({
-    mutationFn: () =>
-      inviteAgencyRosterCaregiver(email.trim(), Number(payRate), {
-        message: message || undefined,
-        payOfferNote: payOfferNote || undefined,
-      }),
+    mutationFn: (opts?: { emailOverride?: string }) =>
+      inviteAgencyRosterCaregiver(
+        (opts?.emailOverride ?? email).trim(),
+        Number(payRate),
+        payClassification as RosterPayClassification,
+        { message: message || undefined },
+      ),
     onSuccess: () => {
-      showToast("Roster invite sent", "success");
+      showToast("Roster invite sent — waiting for caregiver to accept", "success");
       setEmail("");
       setMessage("");
       setPayRate("");
-      setPayOfferNote("including taxes");
+      setPayClassification("W2");
       setLookup(null);
       setSelectedLookup(false);
       invalidateRoster();
@@ -111,14 +161,20 @@ export default function AgencyRosterPage() {
     mutationFn: () => lookupAgencyCaregiverByEmail(email.trim()),
     onSuccess: (data) => {
       setLookup(data);
-      // Auto-select so pay-offer fields appear immediately after lookup.
-      setSelectedLookup(!data.alreadyOnRoster);
-      showToast(
-        data.alreadyOnRoster
-          ? "Caregiver is already on your roster"
-          : "Caregiver found — set their pay offer below",
-        "success",
-      );
+      const canInvite = !data.alreadyOnRoster;
+      setSelectedLookup(canInvite);
+      if (data.alreadyOnRoster) {
+        showToast(
+          data.rosterStatus === "INVITED"
+            ? "Invite already pending for this caregiver"
+            : "Caregiver is already on your roster",
+          "success",
+        );
+      } else if (data.canReinvite) {
+        showToast("Previously removed — send a new invite they must accept", "success");
+      } else {
+        showToast("Caregiver found — set their pay offer below", "success");
+      }
     },
     onError: (err: Error) => {
       setLookup(null);
@@ -132,7 +188,7 @@ export default function AgencyRosterPage() {
       updateAgencyRosterPayOffer(
         selectedRosterId!,
         Number(reviseRate),
-        reviseNote || undefined,
+        reviseClassification as RosterPayClassification,
       ),
     onSuccess: () => {
       showToast("Pay offer updated — caregiver notified", "success");
@@ -172,12 +228,12 @@ export default function AgencyRosterPage() {
     mutationFn: ({
       id,
       rate,
-      note,
+      classification,
     }: {
       id: string;
       rate: number;
-      note?: string;
-    }) => acceptAgencyCaregiverInterest(id, rate, note),
+      classification: RosterPayClassification;
+    }) => acceptAgencyCaregiverInterest(id, rate, classification),
     onSuccess: () => {
       showToast("Caregiver added to roster", "success");
       queryClient.invalidateQueries({ queryKey: ["agency-caregiver-interests"] });
@@ -202,7 +258,7 @@ export default function AgencyRosterPage() {
       return;
     }
     if (lookup.alreadyOnRoster) {
-      showToast("This caregiver is already on your roster", "error");
+      showToast("This caregiver is already on your roster or has a pending invite", "error");
       return;
     }
     const rate = Number(payRate);
@@ -210,11 +266,20 @@ export default function AgencyRosterPage() {
       showToast("Enter an hourly pay offer greater than 0", "error");
       return;
     }
-    invite.mutate();
+    if (payClassification !== "W2" && payClassification !== "NON_W2") {
+      showToast("Choose W-2 or not W-2", "error");
+      return;
+    }
+    invite.mutate({});
   }
 
   const pendingInterests = (interests.data ?? []).filter((i) => i.status === "PENDING");
   const detail = member.data;
+  const previewRate = Number(payRate);
+  const previewOffer =
+    Number.isFinite(previewRate) && previewRate > 0 && payClassification
+      ? formatPayOffer(previewRate, payClassification)
+      : null;
 
   return (
     <div className="space-y-10">
@@ -308,12 +373,20 @@ export default function AgencyRosterPage() {
                 </span>
                 {lookup.alreadyOnRoster ? (
                   <span className="mt-2 block text-brand-deep">
-                    Already on roster (
+                    {lookup.rosterStatus === "INVITED"
+                      ? "Invite already pending"
+                      : "Already on roster"}{" "}
+                    (
                     {formatStatusLabel(
                       lookup.rosterStatus,
                       AGENCY_CAREGIVER_STATUS_LABEL,
                     )}
                     )
+                  </span>
+                ) : null}
+                {lookup.canReinvite ? (
+                  <span className="mt-2 block text-brand-deep">
+                    Previously removed — send a new invite (they must accept again)
                   </span>
                 ) : null}
               </span>
@@ -322,10 +395,15 @@ export default function AgencyRosterPage() {
             {selectedLookup && !lookup.alreadyOnRoster ? (
               <form onSubmit={onInvite} className="space-y-3 rounded-lg border border-brand/30 bg-brand-soft/20 p-3">
                 <div>
-                  <p className="text-sm font-semibold text-ink">Pay offer for this caregiver</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {lookup.canReinvite
+                      ? "Re-invite with a new pay offer"
+                      : "Pay offer for this caregiver"}
+                  </p>
                   <p className="mt-0.5 text-xs text-ink-muted">
-                    Required. This is what they see on invites and agency shifts —
-                    not your agency default rate.
+                    {lookup.canReinvite
+                      ? "They stay off the roster until they accept this invite."
+                      : "Required. Caregivers see this offer on invites and agency shifts — not your agency default rate."}
                   </p>
                 </div>
                 <Field label="Hourly pay offer ($/hr)" required>
@@ -335,17 +413,15 @@ export default function AgencyRosterPage() {
                     step="0.01"
                     value={payRate}
                     onChange={(e) => setPayRate(e.target.value)}
-                    placeholder="15.00"
+                    placeholder="e.g. 22.00"
                     autoFocus
                   />
                 </Field>
-                <Field label="Offer note">
-                  <Input
-                    value={payOfferNote}
-                    onChange={(e) => setPayOfferNote(e.target.value)}
-                    placeholder="including taxes"
-                  />
-                </Field>
+                <PayClassificationPicker
+                  name="invite-pay-class"
+                  value={payClassification}
+                  onChange={setPayClassification}
+                />
                 <Field label="Invite message (optional)">
                   <Input
                     value={message}
@@ -353,21 +429,30 @@ export default function AgencyRosterPage() {
                     placeholder="We’d like you to join our roster…"
                   />
                 </Field>
-                <p className="text-xs text-ink-muted">
-                  Caregiver will see: “The offer is $
-                  {Number(payRate || 0).toFixed(2)} per hour
-                  {payOfferNote ? ` (${payOfferNote})` : ""}.”
-                </p>
+                {previewOffer ? (
+                  <p className="text-xs text-ink-muted">
+                    Caregiver will see: “{previewOffer}”
+                  </p>
+                ) : (
+                  <p className="text-xs text-ink-muted">
+                    Enter an hourly rate to preview the offer text.
+                  </p>
+                )}
                 <Button type="submit" disabled={invite.isPending}>
-                  {invite.isPending ? "Sending…" : "Send invite"}
+                  {invite.isPending
+                    ? "Sending…"
+                    : lookup.canReinvite
+                      ? "Send re-invite"
+                      : "Send invite"}
                 </Button>
               </form>
             ) : null}
 
             {selectedLookup && lookup.alreadyOnRoster ? (
               <p className="text-sm text-ink-muted">
-                This caregiver is already on your roster — open their profile to revise
-                pay or remove them.
+                {lookup.rosterStatus === "INVITED"
+                  ? "An invite is already pending — open their roster row to cancel or wait for acceptance."
+                  : "This caregiver is already on your roster — open their profile to revise pay or remove them."}
               </p>
             ) : null}
           </div>
@@ -383,14 +468,14 @@ export default function AgencyRosterPage() {
           </p>
         ) : null}
         {pendingInterests.map((i) => {
-          const offer = interestRates[i.id] ?? { rate: "", note: "including taxes" };
+          const offer = interestOffers[i.id] ?? { rate: "", classification: "W2" as const };
           return (
             <article key={i.id} className="rounded-xl border border-border bg-white p-4">
               <p className="font-medium">
                 {i.caregiverFirstName} {i.caregiverLastName}
               </p>
               <p className="text-sm text-ink-muted">{i.caregiverEmail}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 space-y-3">
                 <Field label="Hourly pay offer" required>
                   <Input
                     type="number"
@@ -398,26 +483,24 @@ export default function AgencyRosterPage() {
                     step="0.01"
                     value={offer.rate}
                     onChange={(e) =>
-                      setInterestRates((prev) => ({
+                      setInterestOffers((prev) => ({
                         ...prev,
                         [i.id]: { ...offer, rate: e.target.value },
                       }))
                     }
-                    placeholder="15.00"
+                    placeholder="e.g. 22.00"
                   />
                 </Field>
-                <Field label="Offer note">
-                  <Input
-                    value={offer.note}
-                    onChange={(e) =>
-                      setInterestRates((prev) => ({
-                        ...prev,
-                        [i.id]: { ...offer, note: e.target.value },
-                      }))
-                    }
-                    placeholder="including taxes"
-                  />
-                </Field>
+                <PayClassificationPicker
+                  name={`interest-pay-class-${i.id}`}
+                  value={offer.classification}
+                  onChange={(classification) =>
+                    setInterestOffers((prev) => ({
+                      ...prev,
+                      [i.id]: { ...offer, classification },
+                    }))
+                  }
+                />
               </div>
               <div className="mt-3 flex gap-2">
                 <Button
@@ -428,10 +511,14 @@ export default function AgencyRosterPage() {
                       showToast("Enter an hourly pay offer before accepting", "error");
                       return;
                     }
+                    if (offer.classification !== "W2" && offer.classification !== "NON_W2") {
+                      showToast("Choose W-2 or not W-2", "error");
+                      return;
+                    }
                     acceptInterest.mutate({
                       id: i.id,
                       rate,
-                      note: offer.note || undefined,
+                      classification: offer.classification,
                     });
                   }}
                 >
@@ -468,11 +555,27 @@ export default function AgencyRosterPage() {
                 <p className="font-medium">
                   {m.caregiverFirstName} {m.caregiverLastName}
                 </p>
-                <p className="text-sm text-ink-muted">
-                  {m.caregiverEmail} ·{" "}
-                  {formatStatusLabel(m.status, AGENCY_CAREGIVER_STATUS_LABEL)}
+                <p className="text-sm text-ink-muted">{m.caregiverEmail}</p>
+                <p className="mt-1 text-sm">
+                  <span
+                    className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
+                      m.status === "INVITED"
+                        ? "bg-amber-100 text-amber-900"
+                        : m.status === "ACTIVE"
+                          ? "bg-emerald-100 text-emerald-900"
+                          : m.status === "SUSPENDED"
+                            ? "bg-orange-100 text-orange-900"
+                            : "bg-surface text-ink-muted"
+                    }`}
+                  >
+                    {formatStatusLabel(m.status, AGENCY_CAREGIVER_STATUS_LABEL)}
+                  </span>
                   {m.agreedPayRate != null
-                    ? ` · ${formatOffer(m.agreedPayRate, m.payOfferNote)}`
+                    ? ` · $${Number(m.agreedPayRate).toFixed(2)}/hr · ${
+                        m.payClassification
+                          ? ROSTER_PAY_CLASSIFICATION_LABEL[m.payClassification]
+                          : "Pay type unset"
+                      }`
                     : ""}
                 </p>
               </div>
@@ -519,12 +622,24 @@ export default function AgencyRosterPage() {
                     {detail.firstName} {detail.lastName}
                   </h3>
                   <p className="text-sm text-ink-muted">{detail.email}</p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-brand">
-                    Roster:{" "}
-                    {formatStatusLabel(
-                      detail.rosterStatus,
-                      AGENCY_CAREGIVER_STATUS_LABEL,
-                    )}
+                  <p className="mt-1 text-xs font-medium tracking-wide text-brand">
+                    Status:{" "}
+                    <span
+                      className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
+                        detail.rosterStatus === "INVITED"
+                          ? "bg-amber-100 text-amber-900"
+                          : detail.rosterStatus === "ACTIVE"
+                            ? "bg-emerald-100 text-emerald-900"
+                            : detail.rosterStatus === "SUSPENDED"
+                              ? "bg-orange-100 text-orange-900"
+                              : "bg-surface text-ink-muted"
+                      }`}
+                    >
+                      {formatStatusLabel(
+                        detail.rosterStatus,
+                        AGENCY_CAREGIVER_STATUS_LABEL,
+                      )}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -537,7 +652,7 @@ export default function AgencyRosterPage() {
                 />
                 <DetailRow
                   label="Agreed pay"
-                  value={formatOffer(detail.agreedPayRate, detail.payOfferNote)}
+                  value={formatPayOffer(detail.agreedPayRate, detail.payClassification)}
                 />
                 <DetailRow
                   label="Qualifications"
@@ -592,24 +707,21 @@ export default function AgencyRosterPage() {
               {detail.rosterStatus !== "REMOVED" ? (
                 <section className="space-y-3 rounded-lg border border-border bg-surface/50 p-3">
                   <h4 className="text-sm font-semibold">Revise pay offer</h4>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Field label="Hourly rate" required>
-                      <Input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={reviseRate}
-                        onChange={(e) => setReviseRate(e.target.value)}
-                      />
-                    </Field>
-                    <Field label="Note">
-                      <Input
-                        value={reviseNote}
-                        onChange={(e) => setReviseNote(e.target.value)}
-                        placeholder="including taxes"
-                      />
-                    </Field>
-                  </div>
+                  <Field label="Hourly rate" required>
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={reviseRate}
+                      onChange={(e) => setReviseRate(e.target.value)}
+                      placeholder="e.g. 22.00"
+                    />
+                  </Field>
+                  <PayClassificationPicker
+                    name="revise-pay-class"
+                    value={reviseClassification}
+                    onChange={setReviseClassification}
+                  />
                   <Button
                     size="sm"
                     variant="secondary"
@@ -618,6 +730,13 @@ export default function AgencyRosterPage() {
                       const rate = Number(reviseRate);
                       if (!Number.isFinite(rate) || rate <= 0) {
                         showToast("Enter a valid hourly rate", "error");
+                        return;
+                      }
+                      if (
+                        reviseClassification !== "W2" &&
+                        reviseClassification !== "NON_W2"
+                      ) {
+                        showToast("Choose W-2 or not W-2", "error");
                         return;
                       }
                       revisePay.mutate();
@@ -699,9 +818,57 @@ export default function AgencyRosterPage() {
                   </Button>
                 ) : null}
                 {detail.rosterStatus === "REMOVED" ? (
-                  <p className="text-sm text-ink-muted">
-                    Removed from roster. Send a new invite to bring them back.
-                  </p>
+                  <div className="w-full space-y-3 rounded-lg border border-brand/30 bg-brand-soft/20 p-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">Invite again</p>
+                      <p className="mt-0.5 text-xs text-ink-muted">
+                        They must accept the new invite before returning to your roster.
+                      </p>
+                    </div>
+                    <Field label="Hourly pay offer ($/hr)" required>
+                      <Input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={payRate}
+                        onChange={(e) => setPayRate(e.target.value)}
+                        placeholder="e.g. 22.00"
+                      />
+                    </Field>
+                    <PayClassificationPicker
+                      name="reinvite-pay-class"
+                      value={payClassification}
+                      onChange={setPayClassification}
+                    />
+                    <Field label="Invite message (optional)">
+                      <Input
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="We’d like you back on our roster…"
+                      />
+                    </Field>
+                    <Button
+                      size="sm"
+                      disabled={invite.isPending}
+                      onClick={() => {
+                        const rate = Number(payRate);
+                        if (!Number.isFinite(rate) || rate <= 0) {
+                          showToast("Enter an hourly pay offer greater than 0", "error");
+                          return;
+                        }
+                        if (
+                          payClassification !== "W2" &&
+                          payClassification !== "NON_W2"
+                        ) {
+                          showToast("Choose W-2 or not W-2", "error");
+                          return;
+                        }
+                        invite.mutate({ emailOverride: detail.email });
+                      }}
+                    >
+                      {invite.isPending ? "Sending…" : "Send re-invite"}
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             </div>
