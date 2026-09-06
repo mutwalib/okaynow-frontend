@@ -119,11 +119,8 @@ export default function AgencySettingsPage() {
   return (
     <div className="space-y-8">
       <section>
-        <p className="text-sm font-medium uppercase tracking-wide text-brand">
-          Public listing
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-ink">Directory profile</h1>
-        <p className="mt-2 max-w-xl text-ink-muted">
+        <h2 className="font-display text-xl text-ink">Directory profile</h2>
+        <p className="mt-1 max-w-xl text-sm text-ink-muted">
           What homes see when browsing agencies. Listing requires an active
           subscription and “Listed in directory” enabled.
         </p>

@@ -37,7 +37,7 @@ export default function AgencyHomePage() {
             <p className="mt-1 text-sm">
               Renew billing to accept connections and update your directory profile.
             </p>
-            <ButtonLink href="/agency/billing" className="mt-3" size="sm">
+            <ButtonLink href="/agency/settings/billing" className="mt-3" size="sm">
               Go to billing
             </ButtonLink>
           </div>
