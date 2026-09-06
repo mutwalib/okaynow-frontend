@@ -7,6 +7,7 @@ import { FileText, UserRound } from "lucide-react";
 import { CaregiverVerificationDisclaimer } from "@/components/caregiver-verification-disclaimer";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { Modal } from "@/components/ui/modal";
 import {
   acceptAgencyCaregiverInterest,
   declineAgencyCaregiverInterest,
@@ -93,6 +94,7 @@ function PayClassificationPicker({
 export default function AgencyRosterPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [payRate, setPayRate] = useState("");
@@ -137,6 +139,15 @@ export default function AgencyRosterPage() {
     queryClient.invalidateQueries({ queryKey: ["agency-roster-member", selectedRosterId] });
   };
 
+  function resetInviteForm() {
+    setEmail("");
+    setMessage("");
+    setPayRate("");
+    setPayClassification("W2");
+    setLookup(null);
+    setSelectedLookup(false);
+  }
+
   const invite = useMutation({
     mutationFn: (opts?: { emailOverride?: string }) =>
       inviteAgencyRosterCaregiver(
@@ -147,12 +158,8 @@ export default function AgencyRosterPage() {
       ),
     onSuccess: () => {
       showToast("Roster invite sent — waiting for caregiver to accept", "success");
-      setEmail("");
-      setMessage("");
-      setPayRate("");
-      setPayClassification("W2");
-      setLookup(null);
-      setSelectedLookup(false);
+      resetInviteForm();
+      setInviteOpen(false);
       invalidateRoster();
     },
     onError: (err: Error) => showToast(err.message, "error"),
@@ -183,6 +190,12 @@ export default function AgencyRosterPage() {
       showToast(err.message, "error");
     },
   });
+
+  function closeInviteModal() {
+    if (invite.isPending || search.isPending) return;
+    setInviteOpen(false);
+    resetInviteForm();
+  }
 
   const revisePay = useMutation({
     mutationFn: () =>
@@ -283,181 +296,195 @@ export default function AgencyRosterPage() {
       : null;
 
   return (
-    <div className="space-y-10">
-      <section>
-        <p className="text-sm font-medium uppercase tracking-wide text-brand">Caregivers</p>
-        <h1 className="mt-1 font-display text-3xl text-ink">Agency roster</h1>
-        <p className="mt-2 max-w-xl text-ink-muted">
-          Invite caregivers, set pay offers, and open each person&apos;s schedule,
-          timesheets, and payment status.
-        </p>
-        <div className="mt-4 max-w-xl">
-          <CaregiverVerificationDisclaimer audience="agency" />
-        </div>
-      </section>
-
-      <div className="max-w-md space-y-4 rounded-xl border border-border bg-white p-5">
-        <div>
-          <h2 className="font-display text-lg text-ink">Invite by email</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Look up the caregiver, then enter their hourly pay offer and send the
-            invite. The offer fields appear right after a successful lookup.
+    <div className="space-y-8">
+      <section className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-sm font-medium uppercase tracking-wide text-brand">
+            Caregivers
+          </p>
+          <h1 className="mt-1 font-display text-3xl text-ink">Agency roster</h1>
+          <p className="mt-2 text-ink-muted">
+            Invite caregivers, set pay offers, and open each person&apos;s
+            schedule, timesheets, and payment status.
           </p>
         </div>
+        <Button type="button" onClick={() => setInviteOpen(true)}>
+          Invite caregiver
+        </Button>
+      </section>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!email.trim()) {
-              showToast("Caregiver email is required", "error");
-              return;
-            }
-            setMessage("");
-            search.mutate();
-          }}
-          className="space-y-3"
-        >
-          <Field label="Caregiver email" required>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (lookup) setLookup(null);
-              }}
-              placeholder="caregiver@example.com"
-            />
-          </Field>
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={search.isPending || !email.trim()}
+      <CaregiverVerificationDisclaimer audience="agency" />
+
+      <Modal
+        open={inviteOpen}
+        title="Invite caregiver"
+        onClose={closeInviteModal}
+        size="xl"
+      >
+        <div className="space-y-4">
+          <p className="text-ink-muted">
+            Look up the caregiver, then enter their hourly pay offer and send
+            the invite. The offer fields appear right after a successful lookup.
+          </p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!email.trim()) {
+                showToast("Caregiver email is required", "error");
+                return;
+              }
+              setMessage("");
+              search.mutate();
+            }}
+            className="space-y-3"
           >
-            {search.isPending ? "Searching…" : "Look up profile"}
-          </Button>
-        </form>
-
-        {lookup ? (
-          <div className="space-y-3 border-t border-border pt-4">
-            <p className="text-sm font-medium text-ink">Select caregiver</p>
-            <label
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
-                selectedLookup
-                  ? "border-brand bg-brand-soft/30"
-                  : "border-border bg-surface/50 hover:border-brand/40"
-              }`}
-            >
-              <input
-                type="radio"
-                name="lookup-caregiver"
-                className="mt-1"
-                checked={selectedLookup}
-                onChange={() => setSelectedLookup(true)}
+            <Field label="Caregiver email" required>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (lookup) setLookup(null);
+                }}
+                placeholder="caregiver@example.com"
               />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">
-                  {lookup.firstName} {lookup.lastName}
-                </span>
-                <span className="block text-ink-muted">{lookup.email}</span>
-                <span className="mt-1 block text-ink-muted">
-                  {[lookup.city, lookup.state].filter(Boolean).join(", ") ||
-                    "Location not set"}
-                </span>
-                <span className="mt-1 block text-ink-muted">
-                  Quals:{" "}
-                  {lookup.qualifications.length
-                    ? lookup.qualifications
-                        .map((q) => QUALIFICATION_LABELS[q] ?? q)
-                        .join(", ")
-                    : "None listed"}
-                </span>
-                {lookup.alreadyOnRoster ? (
-                  <span className="mt-2 block text-brand-deep">
-                    {lookup.rosterStatus === "INVITED"
-                      ? "Invite already pending"
-                      : "Already on roster"}{" "}
-                    (
-                    {formatStatusLabel(
-                      lookup.rosterStatus,
-                      AGENCY_CAREGIVER_STATUS_LABEL,
-                    )}
-                    )
-                  </span>
-                ) : null}
-                {lookup.canReinvite ? (
-                  <span className="mt-2 block text-brand-deep">
-                    Previously removed — send a new invite (they must accept again)
-                  </span>
-                ) : null}
-              </span>
-            </label>
+            </Field>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={search.isPending || !email.trim()}
+            >
+              {search.isPending ? "Searching…" : "Look up profile"}
+            </Button>
+          </form>
 
-            {selectedLookup && !lookup.alreadyOnRoster ? (
-              <form onSubmit={onInvite} className="space-y-3 rounded-lg border border-brand/30 bg-brand-soft/20 p-3">
-                <div>
-                  <p className="text-sm font-semibold text-ink">
-                    {lookup.canReinvite
-                      ? "Re-invite with a new pay offer"
-                      : "Pay offer for this caregiver"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {lookup.canReinvite
-                      ? "They stay off the roster until they accept this invite."
-                      : "Required. Caregivers see this offer on invites and agency shifts — not your agency default rate."}
-                  </p>
-                </div>
-                <Field label="Hourly pay offer ($/hr)" required>
-                  <Input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={payRate}
-                    onChange={(e) => setPayRate(e.target.value)}
-                    placeholder="e.g. 22.00"
-                    autoFocus
-                  />
-                </Field>
-                <PayClassificationPicker
-                  name="invite-pay-class"
-                  value={payClassification}
-                  onChange={setPayClassification}
+          {lookup ? (
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-sm font-medium text-ink">Select caregiver</p>
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
+                  selectedLookup
+                    ? "border-brand bg-brand-soft/30"
+                    : "border-border bg-surface/50 hover:border-brand/40"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="lookup-caregiver"
+                  className="mt-1"
+                  checked={selectedLookup}
+                  onChange={() => setSelectedLookup(true)}
                 />
-                <Field label="Invite message (optional)">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="We’d like you to join our roster…"
-                  />
-                </Field>
-                {previewOffer ? (
-                  <p className="text-xs text-ink-muted">
-                    Caregiver will see: “{previewOffer}”
-                  </p>
-                ) : (
-                  <p className="text-xs text-ink-muted">
-                    Enter an hourly rate to preview the offer text.
-                  </p>
-                )}
-                <Button type="submit" disabled={invite.isPending}>
-                  {invite.isPending
-                    ? "Sending…"
-                    : lookup.canReinvite
-                      ? "Send re-invite"
-                      : "Send invite"}
-                </Button>
-              </form>
-            ) : null}
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">
+                    {lookup.firstName} {lookup.lastName}
+                  </span>
+                  <span className="block text-ink-muted">{lookup.email}</span>
+                  <span className="mt-1 block text-ink-muted">
+                    {[lookup.city, lookup.state].filter(Boolean).join(", ") ||
+                      "Location not set"}
+                  </span>
+                  <span className="mt-1 block text-ink-muted">
+                    Quals:{" "}
+                    {lookup.qualifications.length
+                      ? lookup.qualifications
+                          .map((q) => QUALIFICATION_LABELS[q] ?? q)
+                          .join(", ")
+                      : "None listed"}
+                  </span>
+                  {lookup.alreadyOnRoster ? (
+                    <span className="mt-2 block text-brand-deep">
+                      {lookup.rosterStatus === "INVITED"
+                        ? "Invite already pending"
+                        : "Already on roster"}{" "}
+                      (
+                      {formatStatusLabel(
+                        lookup.rosterStatus,
+                        AGENCY_CAREGIVER_STATUS_LABEL,
+                      )}
+                      )
+                    </span>
+                  ) : null}
+                  {lookup.canReinvite ? (
+                    <span className="mt-2 block text-brand-deep">
+                      Previously removed — send a new invite (they must accept
+                      again)
+                    </span>
+                  ) : null}
+                </span>
+              </label>
 
-            {selectedLookup && lookup.alreadyOnRoster ? (
-              <p className="text-sm text-ink-muted">
-                {lookup.rosterStatus === "INVITED"
-                  ? "An invite is already pending — open their roster row to cancel or wait for acceptance."
-                  : "This caregiver is already on your roster — open their profile to revise pay or remove them."}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              {selectedLookup && !lookup.alreadyOnRoster ? (
+                <form
+                  onSubmit={onInvite}
+                  className="space-y-3 rounded-lg border border-brand/30 bg-brand-soft/20 p-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      {lookup.canReinvite
+                        ? "Re-invite with a new pay offer"
+                        : "Pay offer for this caregiver"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {lookup.canReinvite
+                        ? "They stay off the roster until they accept this invite."
+                        : "Required. Caregivers see this offer on invites and agency shifts — not your agency default rate."}
+                    </p>
+                  </div>
+                  <Field label="Hourly pay offer ($/hr)" required>
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={payRate}
+                      onChange={(e) => setPayRate(e.target.value)}
+                      placeholder="e.g. 22.00"
+                      autoFocus
+                    />
+                  </Field>
+                  <PayClassificationPicker
+                    name="invite-pay-class"
+                    value={payClassification}
+                    onChange={setPayClassification}
+                  />
+                  <Field label="Invite message (optional)">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="We’d like you to join our roster…"
+                    />
+                  </Field>
+                  {previewOffer ? (
+                    <p className="text-xs text-ink-muted">
+                      Caregiver will see: “{previewOffer}”
+                    </p>
+                  ) : (
+                    <p className="text-xs text-ink-muted">
+                      Enter an hourly rate to preview the offer text.
+                    </p>
+                  )}
+                  <Button type="submit" disabled={invite.isPending}>
+                    {invite.isPending
+                      ? "Sending…"
+                      : lookup.canReinvite
+                        ? "Send re-invite"
+                        : "Send invite"}
+                  </Button>
+                </form>
+              ) : null}
+
+              {selectedLookup && lookup.alreadyOnRoster ? (
+                <p className="text-sm text-ink-muted">
+                  {lookup.rosterStatus === "INVITED"
+                    ? "An invite is already pending — open their roster row to cancel or wait for acceptance."
+                    : "This caregiver is already on your roster — open their profile to revise pay or remove them."}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
 
       <section className="space-y-3">
         <h2 className="font-display text-xl text-ink">Caregiver interest</h2>
