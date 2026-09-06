@@ -323,21 +323,16 @@ export default function CaregiverProfilePage() {
           </Field>
         </div>
         <p className="text-xs text-ink-muted">
-          Names are set at registration and cannot be changed here. Contact
-          OkayNow support if a correction is required — OkayNow staff can update
-          it for you.
+          Names are set at registration and cannot be changed here.
         </p>
         {locked ? (
           <p className="text-xs text-ink-muted">
-            Changing qualifications or home address requires OkayNow
-            re-verification before you can continue. Pay rate, radius, and how
-            you get work do not.
+            Changing qualifications or home address requires re-verification.
           </p>
         ) : null}
 
         <p className="text-xs text-ink-muted">
-          Agencies and families verify caregiver credentials themselves. OkayNow
-          does not thoroughly verify caregiver particulars.
+          Agencies and Clients verify caregiver credentials themselves.
         </p>
 
         <fieldset className="space-y-3 rounded-lg border border-line p-4">

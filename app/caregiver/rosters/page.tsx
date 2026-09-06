@@ -9,6 +9,16 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { Button, ButtonLink } from "@/components/ui/button";
+import {
+  AGENCY_CAREGIVER_STATUS_LABEL,
+  formatStatusLabel,
+} from "@/lib/types";
+
+function offerLine(rate: number | null, note: string | null) {
+  if (rate == null) return null;
+  const base = `The offer is $${Number(rate).toFixed(2)} per hour`;
+  return note ? `${base} (${note}).` : `${base}.`;
+}
 
 export default function CaregiverRostersPage() {
   const { showToast } = useToast();
@@ -41,11 +51,6 @@ export default function CaregiverRostersPage() {
       <section>
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Agencies</p>
         <h1 className="mt-1 font-display text-3xl text-ink">My Agencies</h1>
-        <p className="mt-2 max-w-xl text-ink-muted">
-          Agencies that have you on staff. When they open a shift to their
-          roster, it appears under Open shifts with the agency name — only for
-          caregivers on that roster.
-        </p>
         <ButtonLink href="/caregiver/find-agencies" className="mt-4" variant="secondary">
           Find agencies hiring
         </ButtonLink>
@@ -66,7 +71,12 @@ export default function CaregiverRostersPage() {
         {memberships.map((m) => (
           <article key={m.id} className="rounded-xl border border-border bg-white p-4">
             <p className="font-medium text-ink">{m.agencyDisplayName}</p>
-            <p className="text-sm text-ink-muted">Status: {m.status}</p>
+            <p className="text-sm text-ink-muted">
+              Status: {formatStatusLabel(m.status, AGENCY_CAREGIVER_STATUS_LABEL)}
+            </p>
+            {offerLine(m.agreedPayRate, m.payOfferNote) ? (
+              <p className="mt-2 text-sm text-ink">{offerLine(m.agreedPayRate, m.payOfferNote)}</p>
+            ) : null}
           </article>
         ))}
       </section>
@@ -85,6 +95,11 @@ export default function CaregiverRostersPage() {
                   <Mail className="h-3.5 w-3.5" aria-hidden />
                   Roster invitation
                 </p>
+                {offerLine(invite.agreedPayRate, invite.payOfferNote) ? (
+                  <p className="mt-2 text-sm font-medium text-ink">
+                    {offerLine(invite.agreedPayRate, invite.payOfferNote)}
+                  </p>
+                ) : null}
                 {invite.inviteMessage ? (
                   <p className="mt-2 text-sm text-ink-muted">{invite.inviteMessage}</p>
                 ) : null}

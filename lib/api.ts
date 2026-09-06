@@ -1204,10 +1204,33 @@ export function getAgencyRoster() {
   return request<AgencyRosterEntry[]>("/api/agencies/me/roster");
 }
 
-export function inviteAgencyRosterCaregiver(email: string, message?: string) {
+export function inviteAgencyRosterCaregiver(
+  email: string,
+  payRate: number,
+  options?: { message?: string; payOfferNote?: string },
+) {
   return request<AgencyRosterEntry>("/api/agencies/me/roster/invite", {
     method: "POST",
-    body: JSON.stringify({ email, message: message ?? null }),
+    body: JSON.stringify({
+      email,
+      payRate,
+      message: options?.message ?? null,
+      payOfferNote: options?.payOfferNote ?? null,
+    }),
+  });
+}
+
+export function updateAgencyRosterPayOffer(
+  rosterId: string,
+  payRate: number,
+  payOfferNote?: string,
+) {
+  return request<AgencyRosterEntry>(`/api/agencies/me/roster/${rosterId}/pay-offer`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      payRate,
+      payOfferNote: payOfferNote ?? null,
+    }),
   });
 }
 
@@ -1329,10 +1352,20 @@ export function getAgencyCaregiverInterests() {
   return request<CaregiverAgencyInterest[]>("/api/agencies/me/caregiver-interests");
 }
 
-export function acceptAgencyCaregiverInterest(interestId: string) {
+export function acceptAgencyCaregiverInterest(
+  interestId: string,
+  payRate: number,
+  payOfferNote?: string,
+) {
   return request<CaregiverAgencyInterest>(
     `/api/agencies/me/caregiver-interests/${interestId}/accept`,
-    { method: "POST" },
+    {
+      method: "POST",
+      body: JSON.stringify({
+        payRate,
+        payOfferNote: payOfferNote ?? null,
+      }),
+    },
   );
 }
 

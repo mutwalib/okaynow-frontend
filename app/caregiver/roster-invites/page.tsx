@@ -9,6 +9,12 @@ import {
 import { useToast } from "@/lib/toast-context";
 import { Button } from "@/components/ui/button";
 
+function offerLine(rate: number | null, note: string | null) {
+  if (rate == null) return null;
+  const base = `The offer is $${Number(rate).toFixed(2)} per hour`;
+  return note ? `${base} (${note}).` : `${base}.`;
+}
+
 export default function CaregiverRosterInvitesPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -23,6 +29,7 @@ export default function CaregiverRosterInvitesPage() {
     onSuccess: () => {
       showToast("You joined the agency roster", "success");
       queryClient.invalidateQueries({ queryKey: ["caregiver-roster-invites"] });
+      queryClient.invalidateQueries({ queryKey: ["caregiver-rosters"] });
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
@@ -33,8 +40,8 @@ export default function CaregiverRosterInvitesPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-brand">Agencies</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Roster invites</h1>
         <p className="mt-2 max-w-xl text-ink-muted">
-          Home care agencies invite you to their roster before assigning shifts.
-          Accept an invite to receive assignments from that agency.
+          Home care agencies invite you to their roster with an agreed hourly offer
+          before assigning shifts. Accept an invite to receive work from that agency.
         </p>
       </section>
 
@@ -45,7 +52,7 @@ export default function CaregiverRosterInvitesPage() {
             <Building2 className="mx-auto h-10 w-10 text-brand/50" aria-hidden />
             <p className="mt-3 font-medium">No pending invites</p>
             <p className="mt-1 text-sm text-ink-muted">
-              When an agency invites you, it will appear here.
+              When an agency invites you, it will appear here in realtime.
             </p>
           </div>
         ) : null}
@@ -61,6 +68,11 @@ export default function CaregiverRosterInvitesPage() {
                   <Mail className="h-3.5 w-3.5" aria-hidden />
                   Roster invitation
                 </p>
+                {offerLine(invite.agreedPayRate, invite.payOfferNote) ? (
+                  <p className="mt-2 text-sm font-medium text-ink">
+                    {offerLine(invite.agreedPayRate, invite.payOfferNote)}
+                  </p>
+                ) : null}
                 {invite.inviteMessage ? (
                   <p className="mt-2 text-sm text-ink-muted">{invite.inviteMessage}</p>
                 ) : null}

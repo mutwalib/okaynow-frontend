@@ -16,7 +16,7 @@ import {
 import { confirmAction } from "@/lib/confirm";
 import { useToast } from "@/lib/toast-context";
 import { formatDate } from "@/lib/format";
-import { QUALIFICATION_LABELS } from "@/lib/types";
+import { QUALIFICATION_LABELS, formatStatusLabel } from "@/lib/types";
 
 export default function AgencyShiftsPage() {
   const { showToast } = useToast();
@@ -142,7 +142,7 @@ export default function AgencyShiftsPage() {
                   </p>
                   <p className="text-sm text-ink-muted">
                     {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)} · {s.city} ·{" "}
-                    {s.status}
+                    {formatStatusLabel(s.status)}
                     {isOpen ? " · open to roster" : ""}
                     · {s.filledSlots}/{s.requiredHeadcount} filled
                   </p>

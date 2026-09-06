@@ -179,6 +179,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: ["finance-settlements"] });
     void queryClient.invalidateQueries({ queryKey: ["visit"] });
     void queryClient.invalidateQueries({ queryKey: ["schedule-calendar"] });
+    void queryClient.invalidateQueries({ queryKey: ["caregiver-roster-invites"] });
+    void queryClient.invalidateQueries({ queryKey: ["caregiver-rosters"] });
   }, [queryClient]);
 
   const presentOffer = useCallback(
@@ -237,7 +239,20 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           queryKey: ["notifications-unread"],
         });
 
-        if (n.type === "SHIFT_POSTED" && user?.role === "CAREGIVER") {
+        if (
+          n.type === "ROSTER_INVITE" ||
+          n.type === "ROSTER_PAY_OFFER_UPDATED" ||
+          n.type === "ROSTER_REMOVED"
+        ) {
+          void queryClient.invalidateQueries({
+            queryKey: ["caregiver-roster-invites"],
+          });
+          void queryClient.invalidateQueries({ queryKey: ["caregiver-rosters"] });
+          void queryClient.invalidateQueries({
+            queryKey: ["caregiver-agency-open-shifts"],
+          });
+          showToast(n.title, "info");
+        } else if (n.type === "SHIFT_POSTED" && user?.role === "CAREGIVER") {
           const extras = parseOfferPayload(n.payload);
           const shiftId = extras.shiftId ?? "";
           if (shiftId) {

@@ -1,8 +1,21 @@
 import type { ShiftStatus } from "@/lib/types";
+import { formatStatusLabel } from "@/lib/types";
 import { statusTone } from "@/lib/format";
 
+const SHIFT_STATUS_LABEL: Partial<Record<string, string>> = {
+  EXPIRED: "Passed",
+  OPEN: "Open",
+  DRAFT: "Draft",
+  CLAIMED: "Claimed",
+  CONFIRMED: "Confirmed",
+  IN_PROGRESS: "In progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No-show",
+};
+
 export function StatusBadge({ status }: { status: ShiftStatus | string }) {
-  const label = status === "EXPIRED" ? "Passed" : status.replace("_", " ");
+  const label = formatStatusLabel(status, SHIFT_STATUS_LABEL);
   return (
     <span
       className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${statusTone(status as ShiftStatus)}`}

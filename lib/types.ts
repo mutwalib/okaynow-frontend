@@ -51,6 +51,29 @@ export type UserStatus =
   | "SUSPENDED"
   | "DEACTIVATED";
 
+export const USER_STATUS_LABEL: Record<UserStatus, string> = {
+  PENDING_VERIFICATION: "Pending email verification",
+  PENDING_REVIEW: "Pending review",
+  ACTIVE: "Active",
+  RESTRICTED: "Restricted",
+  SUSPENDED: "Suspended",
+  DEACTIVATED: "Deactivated",
+};
+
+/** Title-case enum-style values for display (e.g. PENDING_REVIEW → Pending review). */
+export function formatStatusLabel(
+  status: string | null | undefined,
+  known?: Record<string, string>,
+): string {
+  if (!status) return "";
+  if (known?.[status]) return known[status];
+  return status
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export type MedicaidEligibility =
   | "YES"
   | "NO"
@@ -461,6 +484,11 @@ export type NotificationType =
   | "VISIT_CLOCK_OUT"
   | "VISIT_ARRIVAL_CONFIRMED"
   | "INVOICE_SENT"
+  | "ONBOARDING_INFO_REQUESTED"
+  | "ACCOUNT_APPROVED"
+  | "ROSTER_INVITE"
+  | "ROSTER_PAY_OFFER_UPDATED"
+  | "ROSTER_REMOVED"
   | "SYSTEM";
 
 export interface AppNotification {
@@ -713,6 +741,13 @@ export type ShiftRequestAgencyStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export type AgencyCaregiverStatus = "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED";
 
+export const AGENCY_CAREGIVER_STATUS_LABEL: Record<AgencyCaregiverStatus, string> = {
+  INVITED: "Invite pending",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  REMOVED: "Removed",
+};
+
 export interface ShiftRequestTargetAgency {
   agencyId: string;
   agencyDisplayName: string;
@@ -770,6 +805,9 @@ export interface AgencyRosterEntry {
   caregiverEmail: string;
   status: AgencyCaregiverStatus;
   inviteMessage: string | null;
+  agreedPayRate: number | null;
+  payOfferNote: string | null;
+  payOfferUpdatedAt: string | null;
   invitedAt: string;
   respondedAt: string | null;
 }
@@ -778,6 +816,9 @@ export interface AgencyRosterMemberDetail {
   rosterId: string;
   rosterStatus: AgencyCaregiverStatus;
   inviteMessage: string | null;
+  agreedPayRate: number | null;
+  payOfferNote: string | null;
+  payOfferUpdatedAt: string | null;
   invitedAt: string;
   respondedAt: string | null;
   removedAt: string | null;
