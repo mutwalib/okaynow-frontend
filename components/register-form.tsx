@@ -28,11 +28,61 @@ import {
 
 const ROLES: UserRole[] = ["CAREGIVER", "CLIENT", "FACILITY", "AGENCY_ADMIN"];
 
+type StepId = "role" | "details" | "account" | "legal";
+
+function stepsFor(lockedRole?: UserRole): StepId[] {
+  return lockedRole
+    ? ["details", "account", "legal"]
+    : ["role", "details", "account", "legal"];
+}
+
+function stepTitle(step: StepId, role: UserRole): string {
+  switch (step) {
+    case "role":
+      return "Choose your role";
+    case "details":
+      if (role === "AGENCY_ADMIN") return "Agency details";
+      if (role === "FACILITY") return "Facility details";
+      if (role === "CLIENT") return "About you";
+      return "Your profile";
+    case "account":
+      return "Sign-in details";
+    case "legal":
+      return "Review & agree";
+  }
+}
+
+function stepHint(step: StepId, role: UserRole, lockedRole?: UserRole): string {
+  switch (step) {
+    case "role":
+      return "Each role has its own workspace.";
+    case "details":
+      if (role === "AGENCY_ADMIN") {
+        return lockedRole
+          ? "Subscribe, list in the home directory, and run roster, scheduling, and billing."
+          : "Tell us about your agency and where you operate.";
+      }
+      if (role === "FACILITY") {
+        return "Facility name, contact, and site address.";
+      }
+      if (role === "CLIENT") {
+        return "Who this account is for, and a few care details if needed.";
+      }
+      return "Your name as it should appear to agencies and families.";
+    case "account":
+      return "You’ll use this email and password to sign in.";
+    case "legal":
+      return "One more step — accept the policies, then we’ll email a verification code.";
+  }
+}
+
 export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
   const { register, isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const { showToast } = useToast();
+
+  const flow = useMemo(() => stepsFor(lockedRole), [lockedRole]);
 
   const initialRole = useMemo(() => {
     if (lockedRole && ROLES.includes(lockedRole)) {
@@ -41,6 +91,9 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
     const r = params.get("role")?.toUpperCase();
     return ROLES.includes(r as UserRole) ? (r as UserRole) : "CAREGIVER";
   }, [lockedRole, params]);
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const step = flow[stepIndex] ?? "details";
 
   const [role, setRole] = useState<UserRole>(initialRole);
   const [firstName, setFirstName] = useState("");
@@ -75,52 +128,99 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
     }
   }, [isAuthenticated, isLoading, params, router, user]);
 
+  function validateCurrentStep(): boolean {
+    if (step === "role") {
+      return true;
+    }
+    if (step === "details") {
+      if (!firstName.trim() || !lastName.trim()) {
+        showToast("First and last name are required", "error");
+        return false;
+      }
+      if (role === "FACILITY") {
+        if (!facilityName.trim() || !addressLine.trim() || !city.trim() || !zip.trim()) {
+          showToast("Facility name and full address are required", "error");
+          return false;
+        }
+        const zipCheck = maZipMessage(zip);
+        if (zipCheck !== true) {
+          showToast(zipCheck, "error");
+          return false;
+        }
+      }
+      if (role === "AGENCY_ADMIN") {
+        if (!agencyName.trim() || !addressLine.trim() || !city.trim() || !zip.trim()) {
+          showToast("Agency name and full business address are required", "error");
+          return false;
+        }
+        const zipCheck = maZipMessage(zip);
+        if (zipCheck !== true) {
+          showToast(zipCheck, "error");
+          return false;
+        }
+      }
+      if (role === "CLIENT" && forSomeoneElse) {
+        if (!medicaidEligible || !relationshipToCareRecipient) {
+          showToast(
+            "Select Medicaid eligibility and your relationship to the person receiving care",
+            "error",
+          );
+          return false;
+        }
+      }
+      return true;
+    }
+    if (step === "account") {
+      if (!email.trim()) {
+        showToast("Email is required", "error");
+        return false;
+      }
+      if (password.length < 8) {
+        showToast("Password must be at least 8 characters", "error");
+        return false;
+      }
+      if (password !== confirmPassword) {
+        showToast("Passwords don’t match", "error");
+        return false;
+      }
+      return true;
+    }
+    if (step === "legal") {
+      if (!acceptedLegal) {
+        showToast("Accept the Terms, Privacy Policy, and Platform Policy to continue", "error");
+        return false;
+      }
+      if ((legalDocs.data ?? []).length === 0) {
+        showToast("Legal documents are not available yet — try again shortly", "error");
+        return false;
+      }
+      return true;
+    }
+    return true;
+  }
+
+  function goNext() {
+    if (!validateCurrentStep()) return;
+    if (stepIndex < flow.length - 1) {
+      setStepIndex((i) => i + 1);
+    }
+  }
+
+  function goBack() {
+    if (stepIndex > 0) {
+      setStepIndex((i) => i - 1);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (role === "CLIENT" && forSomeoneElse) {
-      if (!medicaidEligible || !relationshipToCareRecipient) {
-        showToast(
-          "Select Medicaid eligibility and your relationship to the person receiving care",
-          "error",
-        );
-        return;
-      }
-    }
-    if (role === "FACILITY") {
-      if (!facilityName.trim() || !addressLine.trim() || !city.trim() || !zip.trim()) {
-        showToast("Facility name and full address are required", "error");
-        return;
-      }
-      const zipCheck = maZipMessage(zip);
-      if (zipCheck !== true) {
-        showToast(zipCheck, "error");
-        return;
-      }
-    }
-    if (role === "AGENCY_ADMIN") {
-      if (!agencyName.trim() || !addressLine.trim() || !city.trim() || !zip.trim()) {
-        showToast("Agency name and full business address are required", "error");
-        return;
-      }
-      const zipCheck = maZipMessage(zip);
-      if (zipCheck !== true) {
-        showToast(zipCheck, "error");
-        return;
-      }
-    }
-    if (!acceptedLegal) {
-      showToast("Accept the Terms, Privacy Policy, and Platform Policy to continue", "error");
+    if (step !== "legal") {
+      goNext();
       return;
     }
-    if (password !== confirmPassword) {
-      showToast("Passwords don’t match", "error");
-      return;
-    }
+    if (!validateCurrentStep()) return;
+
     const docIds = (legalDocs.data ?? []).map((d) => d.id);
-    if (docIds.length === 0) {
-      showToast("Legal documents are not available yet — try again shortly", "error");
-      return;
-    }
     setSubmitting(true);
     try {
       const result = await register({
@@ -171,6 +271,8 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
     }
   }
 
+  const progressLabel = `Step ${stepIndex + 1} of ${flow.length}`;
+
   return (
     <div className="flex min-h-screen atmosphere">
       <div className="mx-auto flex w-full max-w-lg flex-col justify-center px-6 py-12">
@@ -183,269 +285,344 @@ export function RegisterForm({ lockedRole }: { lockedRole?: UserRole }) {
             : "Create your account"}
         </h1>
         <p className="mt-2 text-sm text-ink-muted animate-rise-delay">
-          {lockedRole === "AGENCY_ADMIN"
-            ? "Subscribe, list in the home directory, and run roster, scheduling, and billing."
-            : "Choose your role — each has its own workspace."}
+          {stepHint(step, role, lockedRole)}
         </p>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4 animate-rise-delay-2">
-          {lockedRole ? null : (
-          <Field label="I am a…">
-            <Select
-              value={role}
-              onChange={(e) => {
-                const next = e.target.value as UserRole;
-                setRole(next);
-                if (next !== "CLIENT") {
-                  setRegisteringForSelf("true");
-                  setMedicaidEligible("");
-                  setRelationshipToCareRecipient("");
-                }
-              }}
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABEL[r]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          )}
-
-          {role === "FACILITY" ? (
-            <Field label="Facility name">
-              <Input
-                required
-                value={facilityName}
-                onChange={(e) => setFacilityName(e.target.value)}
-                placeholder="Sunrise Adult Day Health"
-              />
-            </Field>
-          ) : null}
-
-          {role === "AGENCY_ADMIN" ? (
-            <Field label="Agency name">
-              <Input
-                required
-                value={agencyName}
-                onChange={(e) => setAgencyName(e.target.value)}
-                placeholder="Harbor Home Care LLC"
-              />
-            </Field>
-          ) : null}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label={
-                role === "FACILITY"
-                  ? "Contact first name"
-                  : role === "AGENCY_ADMIN"
-                    ? "Admin first name"
-                    : "First name"
-              }
-            >
-              <Input
-                required
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-              />
-            </Field>
-            <Field
-              label={
-                role === "FACILITY"
-                  ? "Contact last name"
-                  : role === "AGENCY_ADMIN"
-                    ? "Admin last name"
-                    : "Last name"
-              }
-            >
-              <Input
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-              />
-            </Field>
+        <div className="mt-6 animate-rise-delay" aria-label={progressLabel}>
+          <div className="flex items-center justify-between gap-3 text-xs font-medium text-ink-muted">
+            <span>{stepTitle(step, role)}</span>
+            <span>{progressLabel}</span>
           </div>
+          <div className="mt-2 flex gap-1.5" role="presentation">
+            {flow.map((id, i) => (
+              <div
+                key={id}
+                className={`h-1 flex-1 rounded-full transition-colors ${
+                  i <= stepIndex ? "bg-brand" : "bg-line"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
 
-          {role === "FACILITY" || role === "AGENCY_ADMIN" ? (
+        <form onSubmit={onSubmit} className="mt-8 space-y-4 animate-rise-delay-2">
+          {step === "role" ? (
+            <Field label="I am a…">
+              <Select
+                value={role}
+                onChange={(e) => {
+                  const next = e.target.value as UserRole;
+                  setRole(next);
+                  if (next !== "CLIENT") {
+                    setRegisteringForSelf("true");
+                    setMedicaidEligible("");
+                    setRelationshipToCareRecipient("");
+                  }
+                }}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+
+          {step === "details" ? (
             <>
-              <Field label={role === "AGENCY_ADMIN" ? "Business address" : "Facility address"}>
-                <Input
-                  required
-                  value={addressLine}
-                  onChange={(e) => setAddressLine(e.target.value)}
-                  placeholder="123 Main St"
-                />
-              </Field>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="City">
+              {role === "FACILITY" ? (
+                <Field label="Facility name">
                   <Input
                     required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    value={facilityName}
+                    onChange={(e) => setFacilityName(e.target.value)}
+                    placeholder="Sunrise Adult Day Health"
                   />
                 </Field>
-                <Field label="State">
+              ) : null}
+
+              {role === "AGENCY_ADMIN" ? (
+                <Field label="Agency name">
                   <Input
-                    readOnly
                     required
-                    value={DEFAULT_STATE}
-                    title={`OkayNow currently operates in ${SERVICE_REGION_LABEL} only`}
+                    value={agencyName}
+                    onChange={(e) => setAgencyName(e.target.value)}
+                    placeholder="Harbor Home Care LLC"
                   />
-                  <span className="block text-xs text-ink-muted">
-                    {SERVICE_REGION_LABEL} only — more states later
-                  </span>
                 </Field>
-                <Field label="ZIP">
+              ) : null}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label={
+                    role === "FACILITY"
+                      ? "Contact first name"
+                      : role === "AGENCY_ADMIN"
+                        ? "Admin first name"
+                        : "First name"
+                  }
+                >
                   <Input
                     required
-                    inputMode="numeric"
-                    placeholder="02108"
-                    value={zip}
-                    onChange={(e) => setZip(e.target.value)}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={
+                    role === "FACILITY"
+                      ? "Contact last name"
+                      : role === "AGENCY_ADMIN"
+                        ? "Admin last name"
+                        : "Last name"
+                  }
+                >
+                  <Input
+                    required
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                   />
                 </Field>
               </div>
-            </>
-          ) : null}
 
-          {role === "CLIENT" ? (
-            <>
-              <Field label="Who is this account for?">
-                <Select
-                  required
-                  value={registeringForSelf}
-                  onChange={(e) => {
-                    setRegisteringForSelf(e.target.value);
-                    if (e.target.value === "true") {
-                      setMedicaidEligible("");
-                      setRelationshipToCareRecipient("");
-                    }
-                  }}
-                >
-                  <option value="true">Myself (I am receiving care)</option>
-                  <option value="false">Someone else (I am registering for them)</option>
-                </Select>
-              </Field>
-
-              {forSomeoneElse ? (
+              {role === "FACILITY" || role === "AGENCY_ADMIN" ? (
                 <>
-                  <Field label="Is the person receiving care eligible for Medicaid?">
+                  <Field
+                    label={
+                      role === "AGENCY_ADMIN" ? "Business address" : "Facility address"
+                    }
+                  >
+                    <Input
+                      required
+                      value={addressLine}
+                      onChange={(e) => setAddressLine(e.target.value)}
+                      placeholder="123 Main St"
+                    />
+                  </Field>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <Field label="City">
+                      <Input
+                        required
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="State">
+                      <Input
+                        readOnly
+                        required
+                        value={DEFAULT_STATE}
+                        title={`OkayNow currently operates in ${SERVICE_REGION_LABEL} only`}
+                      />
+                      <span className="block text-xs text-ink-muted">
+                        {SERVICE_REGION_LABEL} only — more states later
+                      </span>
+                    </Field>
+                    <Field label="ZIP">
+                      <Input
+                        required
+                        inputMode="numeric"
+                        placeholder="02108"
+                        value={zip}
+                        onChange={(e) => setZip(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                </>
+              ) : null}
+
+              {role === "CLIENT" ? (
+                <>
+                  <Field label="Who is this account for?">
                     <Select
                       required
-                      value={medicaidEligible}
-                      onChange={(e) =>
-                        setMedicaidEligible(e.target.value as MedicaidEligibility | "")
-                      }
+                      value={registeringForSelf}
+                      onChange={(e) => {
+                        setRegisteringForSelf(e.target.value);
+                        if (e.target.value === "true") {
+                          setMedicaidEligible("");
+                          setRelationshipToCareRecipient("");
+                        }
+                      }}
                     >
-                      <option value="">Choose one…</option>
-                      {(
-                        Object.keys(MEDICAID_ELIGIBILITY_LABEL) as MedicaidEligibility[]
-                      ).map((value) => (
-                        <option key={value} value={value}>
-                          {MEDICAID_ELIGIBILITY_LABEL[value]}
-                        </option>
-                      ))}
+                      <option value="true">Myself (I am receiving care)</option>
+                      <option value="false">
+                        Someone else (I am registering for them)
+                      </option>
                     </Select>
                   </Field>
-                  <Field label="What is your relationship to the person receiving care? I am the:">
-                    <Select
-                      required
-                      value={relationshipToCareRecipient}
-                      onChange={(e) =>
-                        setRelationshipToCareRecipient(
-                          e.target.value as CareRecipientRelationship | "",
-                        )
-                      }
-                    >
-                      <option value="">Choose one…</option>
-                      {(
-                        Object.keys(
-                          CARE_RECIPIENT_RELATIONSHIP_LABEL,
-                        ) as CareRecipientRelationship[]
-                      ).map((value) => (
-                        <option key={value} value={value}>
-                          {CARE_RECIPIENT_RELATIONSHIP_LABEL[value]}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
+
+                  {forSomeoneElse ? (
+                    <>
+                      <Field label="Is the person receiving care eligible for Medicaid?">
+                        <Select
+                          required
+                          value={medicaidEligible}
+                          onChange={(e) =>
+                            setMedicaidEligible(
+                              e.target.value as MedicaidEligibility | "",
+                            )
+                          }
+                        >
+                          <option value="">Choose one…</option>
+                          {(
+                            Object.keys(
+                              MEDICAID_ELIGIBILITY_LABEL,
+                            ) as MedicaidEligibility[]
+                          ).map((value) => (
+                            <option key={value} value={value}>
+                              {MEDICAID_ELIGIBILITY_LABEL[value]}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <Field label="What is your relationship to the person receiving care? I am the:">
+                        <Select
+                          required
+                          value={relationshipToCareRecipient}
+                          onChange={(e) =>
+                            setRelationshipToCareRecipient(
+                              e.target.value as CareRecipientRelationship | "",
+                            )
+                          }
+                        >
+                          <option value="">Choose one…</option>
+                          {(
+                            Object.keys(
+                              CARE_RECIPIENT_RELATIONSHIP_LABEL,
+                            ) as CareRecipientRelationship[]
+                          ).map((value) => (
+                            <option key={value} value={value}>
+                              {CARE_RECIPIENT_RELATIONSHIP_LABEL[value]}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    </>
+                  ) : null}
                 </>
               ) : null}
             </>
           ) : null}
 
-          <Field label="Email">
-            <Input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
-          <Field label="Phone (optional)">
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </Field>
-          <Field label="Password">
-            <PasswordInput
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Confirm password"
-            error={
-              confirmPassword.length > 0 && password !== confirmPassword
-                ? "Passwords don’t match"
-                : undefined
-            }
-          >
-            <PasswordInput
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </Field>
+          {step === "account" ? (
+            <>
+              <Field label="Email">
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Field>
+              <Field label="Phone (optional)">
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </Field>
+              <Field label="Password">
+                <PasswordInput
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+              <Field
+                label="Confirm password"
+                error={
+                  confirmPassword.length > 0 && password !== confirmPassword
+                    ? "Passwords don’t match"
+                    : undefined
+                }
+              >
+                <PasswordInput
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
 
-          <label className="flex items-start gap-2 rounded-lg border border-line bg-paper px-3 py-3 text-sm text-ink">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={acceptedLegal}
-              onChange={(e) => setAcceptedLegal(e.target.checked)}
-            />
-            <span>
-              I agree to the{" "}
-              {(legalDocs.data ?? []).map((d, i) => (
-                <span key={d.id}>
-                  {i > 0 ? ", " : ""}
-                  <Link
-                    href={`/legal/${d.documentType.toLowerCase().replaceAll("_", "-")}`}
-                    className="font-medium text-brand-deep underline"
-                    target="_blank"
-                  >
-                    {d.title}
-                  </Link>
-                  <span className="text-ink-muted"> (v{d.version})</span>
+          {step === "legal" ? (
+            <>
+              <div className="rounded-lg border border-line bg-paper px-4 py-3 text-sm text-ink">
+                <p className="font-medium">
+                  {ROLE_LABEL[role]}
+                  {role === "AGENCY_ADMIN" && agencyName.trim()
+                    ? ` · ${agencyName.trim()}`
+                    : role === "FACILITY" && facilityName.trim()
+                      ? ` · ${facilityName.trim()}`
+                      : null}
+                </p>
+                <p className="mt-1 text-ink-muted">
+                  {[firstName, lastName].filter(Boolean).join(" ")}
+                  {email ? ` · ${email}` : null}
+                </p>
+              </div>
+              <label className="flex items-start gap-2 rounded-lg border border-line bg-paper px-3 py-3 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={acceptedLegal}
+                  onChange={(e) => setAcceptedLegal(e.target.checked)}
+                />
+                <span>
+                  I agree to the{" "}
+                  {(legalDocs.data ?? []).map((d, i) => (
+                    <span key={d.id}>
+                      {i > 0 ? ", " : ""}
+                      <Link
+                        href={`/legal/${d.documentType.toLowerCase().replaceAll("_", "-")}`}
+                        className="font-medium text-brand-deep underline"
+                        target="_blank"
+                      >
+                        {d.title}
+                      </Link>
+                      <span className="text-ink-muted"> (v{d.version})</span>
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
-          </label>
+              </label>
+            </>
+          ) : null}
 
-          <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-            {!submitting ? <ArrowRight className="h-5 w-5" aria-hidden /> : null}
-            {submitting ? "Creating…" : `Continue as ${ROLE_LABEL[role]}`}
-          </Button>
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse">
+            <Button
+              type="submit"
+              className="w-full sm:flex-1"
+              size="lg"
+              disabled={submitting}
+            >
+              {!submitting ? <ArrowRight className="h-5 w-5" aria-hidden /> : null}
+              {submitting
+                ? "Creating…"
+                : step === "legal"
+                  ? `Continue as ${ROLE_LABEL[role]}`
+                  : "Continue"}
+            </Button>
+            {stepIndex > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full sm:w-auto"
+                size="lg"
+                onClick={goBack}
+                disabled={submitting}
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden />
+                Back
+              </Button>
+            ) : null}
+          </div>
         </form>
 
         <p className="mt-6 text-sm text-ink-muted">
