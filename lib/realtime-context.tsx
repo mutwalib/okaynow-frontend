@@ -15,7 +15,7 @@ import {
   type OpenShiftOffer,
 } from "@/components/open-shift-offer-banner";
 import {
-  getAgencyMe,
+  getMyAgency,
   getMyNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
@@ -165,7 +165,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   const agencyMeQ = useQuery({
     queryKey: ["agency-me"],
-    queryFn: getAgencyMe,
+    queryFn: getMyAgency,
     enabled: isAuthenticated && user?.role === "AGENCY_ADMIN",
     staleTime: 60_000,
   });
