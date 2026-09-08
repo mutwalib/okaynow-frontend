@@ -10,6 +10,7 @@ import {
   getHomeAgencyConnections,
   getShift,
   markShiftNoShow,
+  releaseAgencyCoverage,
   requestShiftReplacement,
 } from "@/lib/api";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
@@ -70,11 +71,20 @@ export default function FacilityShiftDetailPage() {
         slots,
         agencyIds,
       ),
-    onSuccess: (_data, vars) => {
+    onSuccess: () => {
       setCoverageOpen(false);
       qc.invalidateQueries({ queryKey: ["shift", id] });
       qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
       showToast("Sent to the selected agency", "success");
+    },
+    onError: (error: Error) => showToast(error.message, "error"),
+  });
+  const releaseCoverage = useMutation({
+    mutationFn: () => releaseAgencyCoverage(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["shift", id] });
+      qc.invalidateQueries({ queryKey: ["schedule-calendar"] });
+      showToast("Released from agency — you can send it again", "success");
     },
     onError: (error: Error) => showToast(error.message, "error"),
   });
@@ -114,6 +124,9 @@ export default function FacilityShiftDetailPage() {
   const canManageCoverage =
     !isPastShiftClockInWindow(s) &&
     !["COMPLETED", "CANCELLED", "NO_SHOW", "IN_PROGRESS"].includes(s.status);
+  const sentToAgency = !!s.agencyCoverageRequested || !!s.agencyId;
+  const canReleaseAgency =
+    canManageCoverage && sentToAgency && filled === 0;
   const maxMarketplaceSlots =
     missing > 0 ? Math.max(0, missing - marketOpen) : filled;
 
@@ -166,7 +179,7 @@ export default function FacilityShiftDetailPage() {
           </Button>
         </div>
       ) : null}
-      {canManageCoverage && maxMarketplaceSlots > 0 ? (
+      {canManageCoverage && !sentToAgency && maxMarketplaceSlots > 0 ? (
         <div className="rounded-lg border border-line bg-paper p-4">
           <p className="text-sm font-medium text-ink">
             {missing > 0
@@ -174,8 +187,8 @@ export default function FacilityShiftDetailPage() {
               : "Request replacements from connected agencies"}
           </p>
           <p className="mt-1 text-sm text-ink-muted">
-            Opens this date only. Choose which connected agencies should receive
-            the opening.
+            Send this opening to exactly one connected agency. That agency
+            accepts it from their inbox and staffs it from their roster.
           </p>
           <Button
             className="mt-3"
@@ -188,13 +201,41 @@ export default function FacilityShiftDetailPage() {
           </Button>
         </div>
       ) : null}
-      {canManageCoverage && s.agencyCoverageRequested ? (
+      {canManageCoverage && sentToAgency ? (
         <div className="rounded-lg border border-warn/40 bg-warn/5 p-4">
-          <p className="text-sm font-medium text-ink">Sent to agencies</p>
+          <p className="text-sm font-medium text-ink">Sent to an agency</p>
           <p className="mt-1 text-sm text-ink-muted">
-            Connected agencies can accept this opening from their shift request
-            inbox. You can send it to additional agencies if needed.
+            {s.agencyDisplayName
+              ? `${s.agencyDisplayName} can accept or staff this opening.`
+              : "The selected agency can accept this opening from their shift request inbox."}{" "}
+            To send it to a different agency, release it first — only if no
+            caregiver has taken the shift yet.
           </p>
+          {canReleaseAgency ? (
+            <Button
+              className="mt-3"
+              size="sm"
+              variant="secondary"
+              disabled={releaseCoverage.isPending}
+              onClick={() => {
+                if (
+                  !confirmAction(
+                    "Release this opening from the current agency? You can then send it to a different agency.",
+                  )
+                ) {
+                  return;
+                }
+                releaseCoverage.mutate();
+              }}
+            >
+              {releaseCoverage.isPending ? "Releasing…" : "Release from agency"}
+            </Button>
+          ) : filled > 0 ? (
+            <p className="mt-2 text-xs text-ink-muted">
+              A caregiver has already taken this shift, so it cannot be released
+              to another agency.
+            </p>
+          ) : null}
         </div>
       ) : null}
       {canManageCoverage && marketOpen > 0 ? (

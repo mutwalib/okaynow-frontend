@@ -666,6 +666,12 @@ export function requestShiftReplacement(
   });
 }
 
+export function releaseAgencyCoverage(id: string) {
+  return request<Shift>(`/api/shifts/${id}/release-agency-coverage`, {
+    method: "POST",
+  });
+}
+
 export function closeShiftMarketplace(id: string) {
   return request<Shift>(`/api/shifts/${id}/close-marketplace`, {
     method: "POST",

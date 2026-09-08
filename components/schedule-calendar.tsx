@@ -869,6 +869,7 @@ function PeriodStatusCard({
   const maxOpen = remaining > 0 ? Math.max(0, remaining - marketOpen) : filled;
   const actionable =
     canRequestReplacement &&
+    !shift.agencyCoverageRequested &&
     !ACTIVE_STATUSES.has(shift.status) &&
     maxOpen > 0;
   const canClose =
@@ -974,7 +975,7 @@ function PeriodStatusCard({
       {!otherCoverage && shift.marketplacePosted && !past ? (
         <p className="text-[11px] text-warn">Marketplace open</p>
       ) : !otherCoverage && shift.agencyCoverageRequested && !past ? (
-        <p className="text-[11px] text-warn">Sent to agencies</p>
+        <p className="text-[11px] text-warn">Sent to agency</p>
       ) : !otherCoverage && covered && !past ? (
         <p className="text-[11px] text-ink-muted">Covered</p>
       ) : null}
