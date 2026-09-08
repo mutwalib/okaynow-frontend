@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Building2, MapPin } from "lucide-react";
-import { BrandLogo } from "@/components/brand-logo";
+import { MarketingHeader } from "@/components/marketing-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { getAgencyPublicProfile, requestHomeAgencyConnection } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -77,18 +77,17 @@ export default function AgencyPublicProfilePage() {
 
   return (
     <div className="min-h-screen atmosphere">
-      <header className="border-b border-border/60 bg-white/80 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <BrandLogo variant="primary" height={32} />
+      <MarketingHeader
+        trailing={
           <Link
             href="/agencies"
-            className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+            className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft/40"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Directory
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="rounded-2xl border border-border bg-white p-8 shadow-sm">
