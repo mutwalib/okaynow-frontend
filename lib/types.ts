@@ -308,7 +308,7 @@ export interface AssignedCaregiver {
 }
 
 export interface ScheduleRosterSlot {
-  claimId: string;
+  claimId?: string | null;
   caregiverProfileId: string | null;
   firstName: string | null;
   lastName: string | null;

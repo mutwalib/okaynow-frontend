@@ -538,13 +538,18 @@ export function ScheduleCalendar({
                       {day.shifts.map((shift) => {
                         const canDropOnShift =
                           interactive &&
+                          (!respectAgencyManaged || !!shift.agencyManaged) &&
                           shift.openSlots > 0 &&
                           !ACTIVE_STATUSES.has(shift.status);
                         return (
                         <li key={shift.id}>
                           <PeriodStatusCard
                             shift={shift}
-                            href={`${shiftBasePath}/${shift.id}`}
+                            href={
+                              !respectAgencyManaged || shift.agencyManaged
+                                ? `${shiftBasePath}/${shift.id}`
+                                : undefined
+                            }
                             editHref={
                               canEdit &&
                               (!respectAgencyManaged || shift.agencyManaged) &&
@@ -633,6 +638,7 @@ export function ScheduleCalendar({
                             canOpenToRoster={
                               respectAgencyManaged &&
                               !!shift.agencyManaged &&
+                              !shift.agencyCoverageRequested &&
                               !past &&
                               shift.openSlots > 0 &&
                               !shift.marketplacePosted
@@ -831,7 +837,7 @@ function PeriodStatusCard({
   onOpenToRoster,
 }: {
   shift: ScheduleShiftCard;
-  href: string;
+  href?: string;
   editHref?: string;
   past: boolean;
   acceptDrop?: boolean;
@@ -871,6 +877,110 @@ function PeriodStatusCard({
     !!shift.marketplacePosted &&
     marketOpen > 0;
 
+  const otherCoverage = shift.agencyManaged === false;
+
+  const body = (
+    <div
+      className={`block space-y-1.5 p-2 transition ${
+        past || !href ? "cursor-default" : "hover:bg-surface-2/60"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-1">
+        <p className={`font-semibold tabular-nums ${past ? "text-ink-muted" : "text-ink"}`}>
+          {formatShiftWindow(shift.startTime, shift.endTime)}
+        </p>
+        {routine ? (
+          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+            Daily
+          </span>
+        ) : null}
+      </div>
+      {otherCoverage ? (
+        <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+          Other coverage
+        </p>
+      ) : (
+        <StatusBadge status={shift.status} />
+      )}
+      {!otherCoverage ? (
+        <p
+          className={`tabular-nums ${
+            missing > 0 && shift.marketplacePosted
+              ? "font-medium text-warn"
+              : past
+                ? "text-ink-muted"
+                : "text-ink"
+          }`}
+        >
+          {filled}/{required} CG
+          {missing > 0 ? (
+            <span className={shift.marketplacePosted ? "text-warn" : "text-ink-muted"}>
+              {" "}
+              · {missing} missing
+            </span>
+          ) : (
+            <span className="text-ink-muted"> · filled</span>
+          )}
+        </p>
+      ) : null}
+      {showRosterSlots ? (
+        <ul className="space-y-1 pt-0.5">
+          {shift.roster.map((slot, idx) => (
+            <li
+              key={slot.claimId ?? `occupied-${idx}`}
+              className="flex items-center gap-1.5"
+            >
+              {slot.masked ? (
+                <>
+                  <UserRoundX className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                  <span className="truncate text-ink-muted">
+                    {slot.displayLabel ?? "Occupied by other"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {slot.profilePhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mediaUrl(slot.profilePhotoUrl) ?? slot.profilePhotoUrl}
+                      alt=""
+                      className="h-5 w-5 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserRound className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                  )}
+                  <span className="truncate">
+                    {slot.firstName} {slot.lastName}
+                  </span>
+                </>
+              )}
+            </li>
+          ))}
+          {!otherCoverage
+            ? Array.from({ length: missing }).map((_, i) => (
+                <li
+                  key={`open-${i}`}
+                  className={`flex items-center gap-1.5 ${
+                    shift.marketplacePosted ? "text-warn" : "text-ink-muted"
+                  }`}
+                >
+                  <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {shift.marketplacePosted ? "Open slot" : "Unfilled"}
+                </li>
+              ))
+            : null}
+        </ul>
+      ) : null}
+      {!otherCoverage && shift.marketplacePosted && !past ? (
+        <p className="text-[11px] text-warn">Marketplace open</p>
+      ) : !otherCoverage && shift.agencyCoverageRequested && !past ? (
+        <p className="text-[11px] text-warn">Sent to agencies</p>
+      ) : !otherCoverage && covered && !past ? (
+        <p className="text-[11px] text-ink-muted">Covered</p>
+      ) : null}
+    </div>
+  );
+
   return (
     <div
       className={`rounded-md border text-xs shadow-sm ${
@@ -891,94 +1001,14 @@ function PeriodStatusCard({
           : undefined
       }
     >
-      <Link
-        href={href}
-        className={`block space-y-1.5 p-2 transition ${
-          past ? "cursor-default" : "hover:bg-surface-2/60"
-        }`}
-      >
-        <div className="flex items-start justify-between gap-1">
-          <p className={`font-semibold tabular-nums ${past ? "text-ink-muted" : "text-ink"}`}>
-            {formatShiftWindow(shift.startTime, shift.endTime)}
-          </p>
-          {routine ? (
-            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
-              Daily
-            </span>
-          ) : null}
-        </div>
-        <StatusBadge status={shift.status} />
-        <p
-          className={`tabular-nums ${
-            missing > 0 && shift.marketplacePosted
-              ? "font-medium text-warn"
-              : past
-                ? "text-ink-muted"
-                : "text-ink"
-          }`}
-        >
-          {filled}/{required} CG
-          {missing > 0 ? (
-            <span className={shift.marketplacePosted ? "text-warn" : "text-ink-muted"}>
-              {" "}
-              · {missing} missing
-            </span>
-          ) : (
-            <span className="text-ink-muted"> · filled</span>
-          )}
-        </p>
-        {showRosterSlots ? (
-          <ul className="space-y-1 pt-0.5">
-            {shift.roster.map((slot) => (
-              <li key={slot.claimId} className="flex items-center gap-1.5">
-                {slot.masked ? (
-                  <>
-                    <UserRoundX className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-                    <span className="truncate text-ink-muted">
-                      {slot.displayLabel ?? "Occupied by other"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {slot.profilePhotoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={mediaUrl(slot.profilePhotoUrl) ?? slot.profilePhotoUrl}
-                        alt=""
-                        className="h-5 w-5 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserRound className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-                    )}
-                    <span className="truncate">
-                      {slot.firstName} {slot.lastName}
-                    </span>
-                  </>
-                )}
-              </li>
-            ))}
-            {Array.from({ length: missing }).map((_, i) => (
-              <li
-                key={`open-${i}`}
-                className={`flex items-center gap-1.5 ${
-                  shift.marketplacePosted ? "text-warn" : "text-ink-muted"
-                }`}
-              >
-                <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {shift.marketplacePosted ? "Open slot" : "Unfilled"}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {shift.marketplacePosted && !past ? (
-          <p className="text-[11px] text-warn">Marketplace open</p>
-        ) : shift.agencyCoverageRequested && !past ? (
-          <p className="text-[11px] text-warn">Sent to agencies</p>
-        ) : covered && !past ? (
-          <p className="text-[11px] text-ink-muted">Covered</p>
-        ) : null}
-      </Link>
-      {!past ? (
+      {href ? (
+        <Link href={href} className="block">
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
+      {!past && !otherCoverage ? (
         <div className="flex flex-wrap gap-1 border-t border-line/70 p-1.5">
           {editHref ? (
             <Link

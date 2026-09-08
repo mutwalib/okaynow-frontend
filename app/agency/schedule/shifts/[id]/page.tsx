@@ -132,6 +132,7 @@ export default function AgencyScheduleShiftDetailPage() {
   const allowDelete = canDeleteShift(s) && !!s.agencyId;
   const canStaff =
     !!s.agencyId &&
+    !s.agencyCoverageRequested &&
     !isPastShiftClockInWindow(s) &&
     !["COMPLETED", "CANCELLED", "NO_SHOW", "EXPIRED", "IN_PROGRESS"].includes(
       s.status,

@@ -52,10 +52,11 @@ export default function AgencySchedulePage() {
             Home schedules
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            View and add schedules for connected homes and facilities. You see
-            your roster caregivers by name; other coverage shows as
-            &ldquo;Occupied by other.&rdquo; Care needs arrive in Shift
-            requests — you cannot request marketplace cover on their behalf.
+            View and add schedules for connected homes and facilities. Your
+            shifts show your roster by name. Coverage from another agency on
+            the same home appears only as a blocked time
+            (&ldquo;Occupied by other&rdquo;) — not who is assigned or their
+            status. Care needs arrive in Shift requests.
           </p>
         </div>
         {createPath ? (

@@ -124,7 +124,9 @@ export default function AgencyShiftsPage() {
             return (a.startTime ?? "").localeCompare(b.startTime ?? "");
           })
           .map((s) => {
-          const needsStaff = (s.filledSlots ?? 0) < (s.requiredHeadcount ?? 1);
+          const needsStaff =
+            (s.filledSlots ?? 0) < (s.requiredHeadcount ?? 1) &&
+            !s.agencyCoverageRequested;
           const isOpen = s.status === "OPEN" && s.marketplacePosted;
           const assignments = s.assignments ?? [];
           const canUnassign =
