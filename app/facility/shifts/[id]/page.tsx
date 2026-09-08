@@ -206,10 +206,11 @@ export default function FacilityShiftDetailPage() {
           <p className="text-sm font-medium text-ink">Sent to an agency</p>
           <p className="mt-1 text-sm text-ink-muted">
             {s.agencyDisplayName
-              ? `${s.agencyDisplayName} can accept or staff this opening.`
-              : "The selected agency can accept this opening from their shift request inbox."}{" "}
-            To send it to a different agency, release it first — only if no
-            caregiver has taken the shift yet.
+              ? `${s.agencyDisplayName} holds this opening.`
+              : "An agency holds this opening."}{" "}
+            Release it before sending to a different agency — only if no
+            caregiver has taken the shift yet. Open a day from your schedule to
+            use Release.
           </p>
           {canReleaseAgency ? (
             <Button
