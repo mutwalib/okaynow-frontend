@@ -160,6 +160,11 @@ export default function AgencyScheduleShiftDetailPage() {
       </ButtonLink>
 
       <StatusBadge status={s.status} />
+      {s.siteDisplayName ? (
+        <p className="text-sm font-medium text-ink">
+          {s.facilityProfileId ? "Facility" : "Home"} · {s.siteDisplayName}
+        </p>
+      ) : null}
       <h1 className="font-display text-4xl text-ink">
         {s.requiredQualification} · {formatDate(s.date)}
       </h1>

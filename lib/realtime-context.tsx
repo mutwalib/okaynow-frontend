@@ -15,6 +15,7 @@ import {
   type OpenShiftOffer,
 } from "@/components/open-shift-offer-banner";
 import {
+  getAgencyMe,
   getMyNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
@@ -162,6 +163,13 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     enabled: isAuthenticated,
   });
 
+  const agencyMeQ = useQuery({
+    queryKey: ["agency-me"],
+    queryFn: getAgencyMe,
+    enabled: isAuthenticated && user?.role === "AGENCY_ADMIN",
+    staleTime: 60_000,
+  });
+
   const invalidateBoards = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["shifts"] });
     void queryClient.invalidateQueries({ queryKey: ["shifts-open-preview"] });
@@ -181,6 +189,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: ["schedule-calendar"] });
     void queryClient.invalidateQueries({ queryKey: ["caregiver-roster-invites"] });
     void queryClient.invalidateQueries({ queryKey: ["caregiver-rosters"] });
+    void queryClient.invalidateQueries({ queryKey: ["agency-shifts"] });
+    void queryClient.invalidateQueries({ queryKey: ["agency-shift-requests"] });
+    void queryClient.invalidateQueries({ queryKey: ["agency-schedule-calendar"] });
   }, [queryClient]);
 
   const presentOffer = useCallback(
@@ -217,6 +228,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     }
 
     const client = createRealtimeClient({
+      agencyId:
+        user?.role === "AGENCY_ADMIN" ? (agencyMeQ.data?.id ?? null) : null,
       onConnected: () => setConnected(true),
       onDisconnected: () => setConnected(false),
       onShiftBoard: (update: ShiftBoardUpdate) => {
@@ -250,6 +263,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           void queryClient.invalidateQueries({ queryKey: ["caregiver-rosters"] });
           void queryClient.invalidateQueries({
             queryKey: ["caregiver-agency-open-shifts"],
+          });
+          showToast(n.title, "info");
+        } else if (
+          n.type === "SHIFT_REQUEST_RECEIVED" ||
+          n.type === "SHIFT_REQUEST_ACCEPTED" ||
+          n.type === "SHIFT_REQUEST_AUTO_ACCEPTED"
+        ) {
+          void queryClient.invalidateQueries({
+            queryKey: ["agency-shift-requests"],
+          });
+          void queryClient.invalidateQueries({ queryKey: ["agency-shifts"] });
+          void queryClient.invalidateQueries({
+            queryKey: ["agency-schedule-calendar"],
           });
           showToast(n.title, "info");
         } else if (n.type === "SHIFT_POSTED" && user?.role === "CAREGIVER") {
@@ -310,6 +336,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     showToast,
     user?.role,
     user?.status,
+    agencyMeQ.data?.id,
   ]);
 
   const markRead = useCallback(

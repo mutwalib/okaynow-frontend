@@ -270,6 +270,8 @@ export interface Shift {
   /** Agency that opened this shift to its roster (not public marketplace). */
   agencyId?: string | null;
   agencyDisplayName?: string | null;
+  /** Home or facility name for agency/admin schedule views. */
+  siteDisplayName?: string | null;
   createdBy: string;
   createdAt: string;
 }
@@ -491,6 +493,9 @@ export type NotificationType =
   | "ROSTER_INVITE"
   | "ROSTER_PAY_OFFER_UPDATED"
   | "ROSTER_REMOVED"
+  | "SHIFT_REQUEST_RECEIVED"
+  | "SHIFT_REQUEST_ACCEPTED"
+  | "SHIFT_REQUEST_AUTO_ACCEPTED"
   | "SYSTEM";
 
 export interface AppNotification {

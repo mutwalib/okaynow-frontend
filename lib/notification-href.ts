@@ -34,6 +34,25 @@ export function notificationHref(
     return "/facility/billing";
   }
 
+  if (role === "AGENCY_ADMIN") {
+    if (notification.type === "SHIFT_REQUEST_RECEIVED") {
+      return "/agency/shift-requests";
+    }
+    const shiftId = parseNotificationShiftId(notification.payload);
+    if (
+      shiftId &&
+      (notification.type === "SHIFT_REQUEST_ACCEPTED" ||
+        notification.type === "SHIFT_REQUEST_AUTO_ACCEPTED" ||
+        notification.type.startsWith("SHIFT_"))
+    ) {
+      return `/agency/schedule/shifts/${shiftId}`;
+    }
+    if (notification.type === "SHIFT_REQUEST_ACCEPTED" ||
+        notification.type === "SHIFT_REQUEST_AUTO_ACCEPTED") {
+      return "/agency/shifts";
+    }
+  }
+
   const shiftId = parseNotificationShiftId(notification.payload);
   if (!shiftId) {
     const invoiceId = parseNotificationInvoiceId(notification.payload);
@@ -52,6 +71,8 @@ export function notificationHref(
       return `/client/shifts/${shiftId}`;
     case "FACILITY":
       return `/facility/shifts/${shiftId}`;
+    case "AGENCY_ADMIN":
+      return `/agency/schedule/shifts/${shiftId}`;
     default:
       return null;
   }

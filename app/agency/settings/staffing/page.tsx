@@ -61,12 +61,12 @@ export default function AgencyStaffingPage() {
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-brand" aria-hidden />
             <h2 className="font-display text-lg text-ink">
-              After you accept a request
+              How openings reach your roster
             </h2>
           </div>
           <p className="text-sm text-ink-muted">
             Homes and facilities choose which agencies receive an opening. Your
-            setting below controls what happens once you accept it.
+            setting below controls what happens when one is sent to you.
           </p>
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4">
             <input
@@ -78,8 +78,8 @@ export default function AgencyStaffingPage() {
             <span>
               <span className="font-medium text-ink">Inbox first (recommended)</span>
               <span className="mt-1 block text-sm text-ink-muted">
-                Accepted openings stay on your shift board as drafts. You broadcast
-                to roster caregivers in the area or assign someone specific.
+                Openings wait in Shift requests until you accept. Then they land
+                on your board as drafts so you can broadcast or assign.
               </span>
             </span>
           </label>
@@ -93,9 +93,10 @@ export default function AgencyStaffingPage() {
             <span>
               <span className="font-medium text-ink">Auto-broadcast to area roster</span>
               <span className="mt-1 block text-sm text-ink-muted">
-                When you accept a home or facility opening, the shift is posted
-                immediately to active roster caregivers within their service radius —
-                they can pick it up in real time.
+                When a home or facility sends you an opening, it is accepted and
+                posted immediately to active roster caregivers within their
+                service radius — no inbox Accept step. They can pick it up in
+                real time.
               </span>
             </span>
           </label>

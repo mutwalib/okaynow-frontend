@@ -124,9 +124,9 @@ export function MarketplaceCoverageModal({
               Which agency should receive this opening?
             </legend>
             <p className="mt-1 text-sm text-ink-muted">
-            Send each opening to exactly one agency. To send it to a different
-            agency later, release it first — only possible if no caregiver has
-            taken the shift yet.
+              Send each opening to exactly one agency. If it is still with
+              another agency and no caregiver has taken it, sending here moves
+              it. Staffed openings must be unassigned first.
             </p>
             {connectedAgencies.length === 0 ? (
               <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">

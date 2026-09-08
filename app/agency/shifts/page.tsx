@@ -142,6 +142,11 @@ export default function AgencyShiftsPage() {
                   <p className="font-medium text-ink">
                     {formatDate(s.date)} · {QUALIFICATION_LABELS[s.requiredQualification]}
                   </p>
+                  {s.siteDisplayName ? (
+                    <p className="text-sm font-medium text-ink">
+                      {s.facilityProfileId ? "Facility" : "Home"} · {s.siteDisplayName}
+                    </p>
+                  ) : null}
                   <p className="text-sm text-ink-muted">
                     {s.startTime?.slice(0, 5)}–{s.endTime?.slice(0, 5)} · {s.city} ·{" "}
                     {formatStatusLabel(s.status)}

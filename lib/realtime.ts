@@ -20,10 +20,13 @@ export type RealtimeHandlers = {
   onShiftBoard?: (u: ShiftBoardUpdate) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
+  /** When set, also subscribe to `/topic/agencies/{id}/shifts` for tenant board refresh. */
+  agencyId?: string | null;
 };
 
 export function createRealtimeClient(handlers: RealtimeHandlers) {
   let shiftSub: StompSubscription | null = null;
+  let agencyShiftSub: StompSubscription | null = null;
   let notifSub: StompSubscription | null = null;
   let stopped = false;
 
@@ -47,13 +50,20 @@ export function createRealtimeClient(handlers: RealtimeHandlers) {
     },
     onConnect: () => {
       handlers.onConnected?.();
-      shiftSub = client.subscribe("/topic/shifts", (message: IMessage) => {
+      const onBoard = (message: IMessage) => {
         try {
           handlers.onShiftBoard?.(JSON.parse(message.body) as ShiftBoardUpdate);
         } catch {
           /* ignore malformed */
         }
-      });
+      };
+      shiftSub = client.subscribe("/topic/shifts", onBoard);
+      if (handlers.agencyId) {
+        agencyShiftSub = client.subscribe(
+          `/topic/agencies/${handlers.agencyId}/shifts`,
+          onBoard,
+        );
+      }
       notifSub = client.subscribe(
         "/user/queue/notifications",
         (message: IMessage) => {
@@ -99,8 +109,10 @@ export function createRealtimeClient(handlers: RealtimeHandlers) {
     deactivate() {
       stopped = true;
       shiftSub?.unsubscribe();
+      agencyShiftSub?.unsubscribe();
       notifSub?.unsubscribe();
       shiftSub = null;
+      agencyShiftSub = null;
       notifSub = null;
       void client.deactivate();
     },
