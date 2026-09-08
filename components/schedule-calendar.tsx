@@ -898,10 +898,19 @@ function PeriodStatusCard({
       </div>
       {otherCoverage ? (
         <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">
-          Other coverage
+          {shift.agencyDisplayName
+            ? `Covered by ${shift.agencyDisplayName}`
+            : "Other coverage"}
         </p>
       ) : (
-        <StatusBadge status={shift.status} />
+        <>
+          <StatusBadge status={shift.status} />
+          {shift.agencyDisplayName ? (
+            <p className="truncate text-[11px] font-medium text-ink">
+              {shift.agencyDisplayName}
+            </p>
+          ) : null}
+        </>
       )}
       {!otherCoverage ? (
         <p

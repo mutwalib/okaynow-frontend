@@ -54,6 +54,7 @@ export default function ClientSchedulePage() {
         enableRosterDrag={
           profile.data.canCreateShifts || profile.data.canUpdateShifts
         }
+        showRosterSlots
       />
     </div>
   );

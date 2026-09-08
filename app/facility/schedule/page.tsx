@@ -56,6 +56,7 @@ export default function FacilitySchedulePage() {
         canRequestReplacement
         canEdit
         canDelete
+        showRosterSlots
         coverageAgencies={coverageAgencies}
       />
     </div>

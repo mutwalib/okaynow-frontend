@@ -337,8 +337,10 @@ export interface ScheduleShiftCard {
   needsCoverage: boolean;
   notes: string | null;
   roster: ScheduleRosterSlot[];
-  agencyManaged?: boolean;
+  /** Agency calendar: true = owned; false = other agency opaque; omitted on home/facility. */
+  agencyManaged?: boolean | null;
   agencyCoverageRequested?: boolean;
+  agencyDisplayName?: string | null;
 }
 
 export interface ScheduleDay {
